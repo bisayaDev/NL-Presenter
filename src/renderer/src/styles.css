@@ -1,0 +1,389 @@
+@import 'tailwindcss';
+
+/* NLPresenter design tokens. Change the accent here to rebrand the whole app. */
+@theme {
+  --color-bg: #0b0d12;
+  --color-panel: #12151c;
+  --color-panel-2: #191d26;
+  --color-panel-3: #222734;
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-fg: #e8ecf3;
+  --color-muted: #959eb1;
+  /* Secondary text. Keeps 4.5:1 on bg, panel and panel-2 (WCAG AA). */
+  --color-dim: #7f879b;
+  /* Accent for text, icons and rings. Filled buttons use accent-fill + on-accent, which
+     lib/appearance.ts recomputes for each accent so the label keeps 4.5:1. */
+  --color-accent: #7c6cff;
+  /* Accent as text: lightened until it keeps 4.5:1 on panel-3, the lightest surface. */
+  --color-accent-text: #9386ff;
+  --color-accent-fill: #6b5ce6;
+  --color-on-accent: #ffffff;
+  --color-accent-soft: rgb(124 108 255 / 0.14);
+  --color-live: #ef4444;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* macOS: the top bar doubles as the window drag area (hiddenInset title bar). */
+.drag {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.08);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Stage display: sizes scale with the container; portrait screens stack the side panel below. */
+.stage {
+  container-type: size;
+  --u: min(1cqh, 0.5625cqw);
+  font-family: 'Inter', system-ui, 'Segoe UI', sans-serif;
+  overflow: hidden;
+}
+.stage-side {
+  width: 34%;
+  border-left-width: 1px;
+}
+.stage-side .stage-countdown {
+  height: 38%;
+}
+@container (orientation: portrait) {
+  /* Narrow screens: size chrome from the width so labels stay readable. */
+  .stage > * {
+    --u: min(1cqh, 1.1cqw);
+  }
+  .stage-body {
+    flex-direction: column;
+  }
+  .stage-side {
+    width: auto;
+    height: 24%;
+    flex-direction: row;
+    border-left-width: 0;
+    border-top-width: 1px;
+  }
+  .stage-side > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .stage-side .stage-countdown {
+    height: auto;
+  }
+  /* Presentation page above its notes. */
+  .stage-page {
+    flex-direction: column;
+  }
+}
+
+/* Stage messages: a new message flashes 3 times, or keeps flashing until cleared. */
+.stage-flash {
+  animation: stage-flash 0.7s ease-in-out 3;
+}
+.stage-flash-forever {
+  animation: stage-flash 0.7s ease-in-out infinite;
+}
+@keyframes stage-flash {
+  50% {
+    opacity: 0.15;
+  }
+}
+
+/* Transparency checkerboard behind the overlay preview. */
+.checker {
+  background-color: #2a2f3a;
+  background-image:
+    linear-gradient(45deg, #1f232c 25%, transparent 25%), linear-gradient(-45deg, #1f232c 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1f232c 75%), linear-gradient(-45deg, transparent 75%, #1f232c 75%);
+  background-size: 24px 24px;
+  background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+}
+
+/* Overlay: fade each new slide in. */
+.overlay-fade {
+  animation: overlay-in 280ms ease-out;
+}
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Slide transitions (SlideView / OverlayView). Duration comes inline from the transition setting. */
+.nl-in-fade,
+.nl-in-rise,
+.nl-in-zoom,
+.nl-out-fade,
+.nl-out-rise,
+.nl-out-zoom {
+  animation-fill-mode: both;
+  animation-timing-function: ease;
+}
+.nl-in-fade {
+  animation-name: nl-fade-in;
+}
+.nl-out-fade {
+  animation-name: nl-fade-out;
+}
+.nl-in-rise {
+  animation-name: nl-rise-in;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.nl-out-rise {
+  animation-name: nl-rise-out;
+}
+.nl-in-zoom {
+  animation-name: nl-zoom-in;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.nl-out-zoom {
+  animation-name: nl-zoom-out;
+}
+@keyframes nl-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nl-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes nl-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(4%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nl-rise-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-2%);
+  }
+}
+@keyframes nl-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes nl-zoom-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.04);
+  }
+}
+/* Reduced motion: movement becomes a plain fade. */
+@media (prefers-reduced-motion: reduce) {
+  .nl-in-rise,
+  .nl-in-zoom {
+    animation-name: nl-fade-in;
+  }
+  .nl-out-rise,
+  .nl-out-zoom {
+    animation-name: nl-fade-out;
+  }
+}
+
+.input {
+  height: 2.25rem;
+  border-radius: 0.375rem;
+  background: var(--color-panel-2);
+  padding: 0 0.75rem;
+  font-size: 14px;
+  outline: none;
+  user-select: text;
+}
+.input:focus {
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+/* One keyboard focus ring for every control, in the operator's accent. Unlayered, so it wins
+   over outline-none utilities; mouse clicks on buttons don't trigger :focus-visible. */
+:where(button, a[href], select, summary, label, [role='button'], [role='tab'], [role='option'], [tabindex]:not([tabindex='-1']), input[type='checkbox'], input[type='radio'], input[type='range']):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+input,
+textarea {
+  user-select: text;
+}
+
+.label-caps {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Background loops (components/LoopView.tsx). Sizes assume the 1920-wide virtual stage. */
+.nl-loop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  contain: paint;
+  transform: translateZ(0);
+}
+.nl-loop > span {
+  position: absolute;
+  pointer-events: none;
+}
+.nl-loop-layer,
+.nl-loop-pattern {
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+.nl-loop-pattern {
+  inset: -30%;
+  background-position: 50%;
+  background-repeat: repeat;
+}
+.nl-loop-m-drift { animation-name: nlLoopDrift; }
+.nl-loop-m-curl { animation-name: nlLoopCurl; }
+.nl-loop-m-rise { animation-name: nlLoopRise; }
+.nl-loop-m-pulse { animation-name: nlLoopPulse; }
+.nl-loop-m-wisp { animation-name: nlLoopWisp; }
+.nl-loop-m-billow { animation-name: nlLoopBillow; }
+.nl-loop-prism {
+  inset: -10% -6%;
+  animation: nlLoopPrism 12s ease-in-out infinite reverse;
+}
+.nl-loop-star,
+.nl-loop-dot {
+  filter: blur(0.35px);
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%);
+  animation: nlLoopTwinkle 11s ease-in-out infinite;
+}
+.nl-loop-star {
+  background:
+    radial-gradient(circle, #fffffffa 0 14%, #0000 18%),
+    linear-gradient(90deg, #0000 38%, #ffffffdb 45% 55%, #0000 62%),
+    linear-gradient(#0000 38%, #ffffffdb 45% 55%, #0000 62%);
+}
+.nl-loop-dot {
+  border-radius: 50%;
+  background: radial-gradient(circle, #fffffff2 0%, #ffffff8c 34%, #0000 70%);
+}
+.nl-loop-smoke {
+  inset: -16% -10%;
+  opacity: 0.36;
+  mix-blend-mode: soft-light;
+  background:
+    radial-gradient(90% 20% at 30% 38%, #ffffff14, #0000 72%),
+    radial-gradient(100% 24% at 70% 62%, #ffffff0f, #0000 76%),
+    radial-gradient(84% 18% at 46% 76%, #0000005c, #0000 74%);
+  animation: nlLoopSmoke 14s ease-in-out infinite;
+}
+.nl-loop-vignette {
+  inset: 0;
+  mix-blend-mode: multiply;
+  background:
+    radial-gradient(100% 80% at 50% 48%, #0000 36%, #000000b8 100%),
+    linear-gradient(#00000061, #0000 45%, #0000003d);
+}
+.nl-loop-grain {
+  inset: 0;
+  mix-blend-mode: soft-light;
+  background-image: linear-gradient(#ffffff0a 1px, #0000 1px), linear-gradient(90deg, #ffffff08 1px, #0000 1px);
+  background-size: 18px 18px;
+}
+.nl-loop--still > span {
+  animation: none !important;
+}
+@keyframes nlLoopDrift {
+  0%, 100% { transform: translate(-5%, 2%) scale(0.98); }
+  35% { transform: translate(7%, -4%) scale(1.08); }
+  70% { transform: translate(2%, 6%) scale(1.02); }
+}
+@keyframes nlLoopCurl {
+  0%, 100% { transform: translate(6%, -4%) scaleX(1.08) scaleY(0.92) rotate(2deg); }
+  30% { transform: translate(-8%, 5%) scaleX(0.96) scaleY(1.16) rotate(-3deg); }
+  68% { transform: translate(2%, 8%) scaleX(1.14) scaleY(1.02) rotate(3deg); }
+}
+@keyframes nlLoopRise {
+  0%, 100% { transform: translate(-3%, 7%) scale(0.96); }
+  45% { transform: translate(4%, -8%) scale(1.08); }
+  75% { transform: translate(7%, -2%) scale(1.02); }
+}
+@keyframes nlLoopPulse {
+  0%, 100% { opacity: 0.46; transform: translate(0) scale(0.94); }
+  50% { opacity: 0.78; transform: translate(3%, -2%) scale(1.12); }
+}
+@keyframes nlLoopWisp {
+  0%, 100% { opacity: 0.22; transform: translate(-10%, 8%) scaleX(1.05) scaleY(0.86) rotate(-4deg); }
+  28% { opacity: 0.42; transform: translate(7%, -6%) scaleX(1.28) scaleY(1.02) rotate(3deg); }
+  58% { opacity: 0.3; transform: translate(13%, -14%) scaleX(1.46) scaleY(0.92) rotate(-2deg); }
+  82% { opacity: 0.36; transform: translate(-4%, -8%) scaleX(1.18) scaleY(1.08) rotate(4deg); }
+}
+@keyframes nlLoopBillow {
+  0%, 100% { opacity: 0.2; transform: translate(8%, 10%) scaleX(0.92) scaleY(0.84) rotate(2deg); }
+  34% { opacity: 0.44; transform: translate(-7%, -5%) scaleX(1.22) scaleY(1.18) rotate(-3deg); }
+  66% { opacity: 0.32; transform: translate(4%, -15%) scaleX(1.44) scaleY(1.02) rotate(3deg); }
+}
+@keyframes nlLoopSmoke {
+  0%, 100% { opacity: 0.26; transform: translate(-8%, 6%) scale(1); }
+  36% { opacity: 0.44; transform: translate(7%, -5%) scale(1.08); }
+  72% { opacity: 0.34; transform: translate(4%, 7%) scale(1.04); }
+}
+@keyframes nlLoopTwinkle {
+  0%, 100% { opacity: 0.58; transform: translate(-50%, -50%) scale(0.86); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+}
+@keyframes nlLoopPrism {
+  0%, 100% { opacity: 0.72; transform: translate(-2%) scaleX(1); }
+  50% { opacity: 0.86; transform: translate(2%, -1%) scaleX(1.02); }
+}

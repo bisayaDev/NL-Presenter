@@ -1,0 +1,87 @@
+{
+  "name": "nlpresenter",
+  "productName": "NLPresenter",
+  "version": "0.1.0",
+  "description": "Local-first worship presentation app",
+  "main": "./out/main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "node scripts/electron-vite.cjs dev",
+    "build": "electron-vite build",
+    "preview": "node scripts/electron-vite.cjs preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "dist:mac": "electron-vite build && electron-builder --mac",
+    "dist:win": "electron-vite build && electron-builder --win",
+    "postinstall": "install-electron"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/node": "^26.6.6",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.2",
+    "@vitejs/plugin-react": "^6.2.1",
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "electron-vite": "^6.0.0",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.6"
+  },
+  "dependencies": {
+    "lucide-react": "^1.70.0",
+    "pdfjs-dist": "^5.7.284",
+    "qrcode": "^1.5.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "ws": "^8.22.1",
+    "zustand": "^5.1.0"
+  },
+  "build": {
+    "appId": "com.nlpresenter.app",
+    "productName": "NLPresenter",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSCameraUsageDescription": "NLPresenter shows cameras and capture devices on your screens when you add a Camera item.",
+        "NSMicrophoneUsageDescription": "NLPresenter plays the sound of a camera or capture device when you turn its sound on."
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true
+    },
+    "extraResources": [
+      {
+        "from": "resources/bibles",
+        "to": "bibles"
+      }
+    ]
+  }
+}
