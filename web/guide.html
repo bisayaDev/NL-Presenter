@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>User guide · NLPresenter</title>
+  <meta name="description" content="How to use NLPresenter: install it, build a service, show songs, Bible verses and media, and set up stage screens, phone remotes and the livestream overlay.">
+  <link rel="icon" href="img/favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><img src="img/icon.png" alt="">NLPresenter</a>
+    <nav>
+      <a href="index.html" class="hide-sm">Home</a>
+      <a href="guide.html" aria-current="page">User guide</a>
+      <a href="#shortcuts" class="hide-sm">Shortcuts</a>
+      <a href="#install">Download</a>
+    </nav>
+  </header>
+
+  <div class="docs">
+    <aside class="toc" id="toc" aria-label="Contents">
+      <div class="group">Getting started</div>
+      <a href="#about">What NLPresenter is</a>
+      <a href="#install">Download and install</a>
+      <a href="#quick-start">Quick start</a>
+      <a href="#window">The main window</a>
+      <div class="group">Running a service</div>
+      <a href="#services">Services</a>
+      <a href="#service-order">The service order</a>
+      <a href="#going-live">Going live</a>
+      <a href="#outputs">Projector and screens</a>
+      <a href="#rehearse">Rehearsal and Sunday check</a>
+      <div class="group">Content</div>
+      <a href="#songs">Songs</a>
+      <a href="#song-editor">Song editor</a>
+      <a href="#chords">Chords</a>
+      <a href="#find-song">Find and import songs</a>
+      <a href="#scripture">Scripture</a>
+      <a href="#bibles">Bible translations</a>
+      <a href="#media">Media and backgrounds</a>
+      <a href="#presentations">Presentations</a>
+      <a href="#text-slides">Text slides</a>
+      <a href="#web-camera">Websites and cameras</a>
+      <a href="#style">Text style and looks</a>
+      <a href="#countdown">Countdown</a>
+      <div class="group">Team and livestream</div>
+      <a href="#stage">Stage display</a>
+      <a href="#overlay">Livestream overlay</a>
+      <a href="#remote">Phone remote</a>
+      <a href="#control-api">Stream Deck and clickers</a>
+      <div class="group">More</div>
+      <a href="#printing">Printing</a>
+      <a href="#ccli">Copyright and CCLI</a>
+      <a href="#music">Music player</a>
+      <a href="#backup">Backup and restore</a>
+      <a href="#settings">Settings</a>
+      <a href="#shortcuts">Keyboard shortcuts</a>
+      <a href="#faq">Questions and answers</a>
+    </aside>
+
+    <main class="content">
+      <details class="toc-mobile">
+        <summary>Contents</summary>
+        <nav class="toc" id="toc-mobile"></nav>
+      </details>
+
+      <h1>User guide</h1>
+      <p class="sub">Everything you need to run worship services with NLPresenter, from the first install to Sunday morning.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="about">What NLPresenter is</h2>
+      <p>NLPresenter is a presentation app for churches. It runs on one computer (Mac or Windows) and shows song lyrics,
+        Bible verses, pictures, videos, presentations and announcements on the projector or TV the congregation sees.</p>
+      <p>The same computer can also feed:</p>
+      <ul>
+        <li>a <b>stage screen</b> for singers and musicians, with lyrics, chords, the next line and a clock;</li>
+        <li>a <b>livestream overlay</b> for OBS or vMix, with lyrics on a transparent background;</li>
+        <li><b>phones and tablets</b> on the church Wi-Fi, as remotes, stage screens or extra audience screens.</li>
+      </ul>
+      <p>It is free, needs no account or licence key, and works without the internet. Your songs, services and settings stay
+        on your computer. The internet is only used when you ask for it: to install Bible translations or search for song lyrics.</p>
+      <p>NLPresenter is developed by <b>Ryan Baguasan</b>.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="install">Download and install</h2>
+      <p>Download the installer for your computer from the
+        <a href="https://github.com/bisayaDev/NL-Presenter/releases">releases page</a>.</p>
+      <table>
+        <tr><th>Computer</th><th>File</th><th>Notes</th></tr>
+        <tr><td>Mac (Apple silicon or Intel)</td><td><code>.dmg</code></td><td>macOS 12 (Monterey) or newer.</td></tr>
+        <tr><td>Windows</td><td><code>.exe</code></td><td>Windows 10 or 11, 64-bit.</td></tr>
+      </table>
+
+      <h3>Mac</h3>
+      <ol>
+        <li>Open the <code>.dmg</code> file and drag <b>NLPresenter</b> into <b>Applications</b>.</li>
+        <li>Open NLPresenter from Applications. If macOS says it can't check the app for malicious software, open
+          <span class="ui">System Settings → Privacy &amp; Security</span>, scroll down and click <span class="ui">Open Anyway</span>.
+          You only need to do this once.</li>
+        <li>The first time you add a camera item, macOS asks for camera access. Click <span class="ui">Allow</span>.</li>
+      </ol>
+
+      <h3>Windows</h3>
+      <ol>
+        <li>Run the <code>.exe</code> file. It installs and opens NLPresenter by itself.</li>
+        <li>If Windows shows “Windows protected your PC”, click <span class="ui">More info → Run anyway</span>.</li>
+        <li>If Windows asks whether NLPresenter may use the network, allow private networks. Phone remotes and stage
+          tablets need this.</li>
+      </ol>
+
+      <div class="note"><b class="lbl">Updating</b>
+        <p>Install the new version over the old one. Your songs, services, Bibles and media are kept: they are stored
+          separately from the app.</p></div>
+
+      <!-- ======================================================= -->
+      <h2 id="quick-start">Quick start</h2>
+      <p>This gets you from a fresh install to a working service in about ten minutes.</p>
+
+      <h3>1. Connect the projector</h3>
+      <p>Plug the projector or TV into the computer and set it as an <b>extended</b> display, not mirrored:</p>
+      <ul>
+        <li><b>Mac:</b> System Settings → Displays → choose the projector → <i>Use as: Extended display</i>.</li>
+        <li><b>Windows:</b> press <kbd>Win</kbd>+<kbd>P</kbd> and choose <i>Extend</i>.</li>
+      </ul>
+      <p>The first-run checklist on the Presentation tab can help you with this and the next steps. Click
+        <span class="ui">Show me</span> on any step.</p>
+
+      <h3>2. Add some songs</h3>
+      <p>Open the <b>Songs</b> tab and click <span class="ui">New song</span>. Type a title and paste the lyrics. Put a blank
+        line between slides and a heading such as <code>[Chorus]</code> above each section. Click
+        <span class="ui">Save song</span>.</p>
+      <p>No time to type? <span class="ui">Find a song</span> searches for the lyrics online. See
+        <a href="#find-song">Find and import songs</a>.</p>
+
+      <h3>3. Build the service</h3>
+      <p>In the Songs tab, double-click a song (or select it and press <kbd>Enter</kbd>) to add it to the service. In the
+        Scripture tab, type a reference such as <code>ps 23</code>, select the verses and click
+        <span class="ui">Add to service</span>. The Presentation tab shows the full order.</p>
+
+      <h3>4. Choose a background</h3>
+      <p>At the bottom left of the Presentation tab, click one of the backgrounds. To use your own picture or video, import it
+        in the <b>Media</b> tab first.</p>
+
+      <h3>5. Rehearse, then go live</h3>
+      <p>Click <span class="ui">Rehearse</span> in the top bar and click through the service. Nothing changes on the
+        projector while you rehearse. Click <span class="ui">End rehearsal</span> when you're done.</p>
+      <p>When it's time, click <span class="ui">Open Output</span>. The projector shows the live slide. Click a slide, or
+        press <kbd>→</kbd> or <kbd>Space</kbd> to move forward and <kbd>←</kbd> to go back.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="window">The main window</h2>
+      <figure>
+        <img src="img/presentation.jpg" alt="The Presentation tab with the service order on the left, the slide grid in the middle and the live panel on the right." loading="lazy">
+        <figcaption>The Presentation tab during a service.</figcaption>
+      </figure>
+      <h3>Top bar</h3>
+      <table>
+        <tr><th>Control</th><th>What it does</th></tr>
+        <tr><td>Service name</td><td>Opens the service menu: switch, create, copy or print services. See <a href="#services">Services</a>.</td></tr>
+        <tr><td>Rehearse</td><td>Practise the service while the screens stay as they are. See <a href="#rehearse">Rehearsal</a>.</td></tr>
+        <tr><td>16:9 / 4:3</td><td>The shape of your projector picture.</td></tr>
+        <tr><td>Open Output</td><td>Opens the audience screen on the projector. The ▾ arrow chooses the display and sets up wireless screens.</td></tr>
+        <tr><td>♫</td><td>The <a href="#music">music player</a>.</td></tr>
+        <tr><td>Speech bubble</td><td>Chat with people using the phone remote.</td></tr>
+        <tr><td>Remote</td><td>Turns on <a href="#remote">phone remotes</a>, stage tablets and the livestream overlay.</td></tr>
+        <tr><td>Gear</td><td><a href="#settings">Settings</a>, backup and restore.</td></tr>
+      </table>
+      <h3>Tabs</h3>
+      <p><b>Presentation</b> (the service), <b>Songs</b>, <b>Scripture</b>, <b>Media</b>, <b>Countdown</b> and
+        <b>Stage &amp; OBS</b>. Switch with <kbd>F1</kbd>–<kbd>F6</kbd> or <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>1</kbd>–<kbd>6</kbd>.</p>
+      <h3>Live panel</h3>
+      <p>The right-hand column is always visible, whatever tab you're on:</p>
+      <ul>
+        <li><b>Live:</b> exactly what the audience sees, with <span class="ui">Clear</span> to empty the screen.</li>
+        <li><b>Prev, Hide, Black, Next:</b> <i>Hide</i> removes the words but keeps the background. <i>Black</i> blacks out the whole screen.</li>
+        <li><b>Up next:</b> the slide that comes next.</li>
+        <li><b>Service flow:</b> the whole service. Click an item to jump to it.</li>
+        <li><b>Clock and timers</b> at the bottom: the time, how long the service has been running, and how long the current
+          item has been on (amber when it runs past its planned length).</li>
+      </ul>
+
+      <!-- ======================================================= -->
+      <h2 id="services">Services</h2>
+      <p>A service is one order of worship, for example “Sunday Service – 16 Nov”. Click the service name in the top bar to
+        open the service menu:</p>
+      <ul>
+        <li><b>New service:</b> an empty service dated next Sunday.</li>
+        <li><b>Copy for next week:</b> the same order with fresh copies of each song. Handy when most of the service stays
+          the same.</li>
+        <li>Rename, change the date, or delete a service.</li>
+        <li><b>Print / PDF…</b> and <b>Sunday check…</b> (see <a href="#printing">Printing</a> and
+          <a href="#rehearse">Sunday check</a>).</li>
+      </ul>
+      <p>NLPresenter saves as you work, so there is no Save button. It reopens the last service you had open.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="service-order">The service order</h2>
+      <p>The left column of the Presentation tab lists the items in the service. Drag items to reorder them.</p>
+      <h3>Adding items</h3>
+      <ul>
+        <li><b>Songs:</b> the ♫ button above the list, or double-click a song in the Songs tab.</li>
+        <li><b>Bible passages:</b> from the Scripture tab.</li>
+        <li><b>Pictures and videos:</b> select them in the Media tab and click <span class="ui">Add to service</span>, or drop
+          files on the service order. Several pictures become one slideshow.</li>
+        <li><b>The + button</b> adds a section header, text slides, a presentation, a website or vdo.ninja feed, or a camera.</li>
+      </ul>
+      <h3>Section headers</h3>
+      <p>Headers such as “Opening”, “Worship” or “Offering” group the items under them. Click a header to fold it, double-click
+        to rename it, and pick a colour. Dragging a header moves its whole group. Headers are skipped when you press Next.</p>
+      <h3>Planned length</h3>
+      <p>Hover over an item and click the clock icon to give it a planned length in minutes. The list shows the total for the
+        service and each section, and the item timer turns amber when an item runs long.</p>
+      <h3>Undo</h3>
+      <p><kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes changes to the service order, and
+        <kbd>Shift</kbd>+<kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>Z</kbd> redoes them. Removing an item also shows an
+        <span class="ui">Undo</span> button.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="going-live">Going live</h2>
+      <p>Select an item in the service order to see its slides in the middle. Then:</p>
+      <ul>
+        <li><b>Click a slide</b> to show it on the screens. The live slide has a red border.</li>
+        <li>Press <kbd>→</kbd>, <kbd>Space</kbd> or <kbd>Page Down</kbd> for the next slide, and <kbd>←</kbd> or
+          <kbd>Page Up</kbd> for the previous one. At the end of an item, Next goes on to the next item.</li>
+        <li><kbd>`</kbd> or <kbd>.</kbd> blacks out the screen. <kbd>H</kbd> hides the words. <kbd>Esc</kbd> clears the screen.</li>
+      </ul>
+      <h3>Jump straight to a section</h3>
+      <p>While a song is live, press <kbd>C</kbd> for the next chorus, <kbd>B</kbd> or <kbd>R</kbd> for the bridge,
+        <kbd>P</kbd> for the pre-chorus, <kbd>E</kbd> for the ending, or <kbd>V</kbd> then a number for that verse. Type a
+        slide number and press <kbd>Enter</kbd> to go to that slide.</p>
+      <h3>Preview first</h3>
+      <p>Switch the slide grid from <span class="ui">Go live</span> to <span class="ui">Preview first</span> if you'd rather
+        check a slide before the congregation sees it. A click then puts the slide in a Preview box that only you see.
+        Double-click, press <kbd>Enter</kbd> or click <span class="ui">Go live</span> to send it.</p>
+      <h3>Slide grid tools</h3>
+      <ul>
+        <li><b>Edit song:</b> opens the <a href="#song-editor">song editor</a>.</li>
+        <li><b>Arrange:</b> changes the order of a song's sections for this service only. Drag the section chips, + repeats
+          a section, × removes it.</li>
+        <li><b>Look:</b> a saved text style for this item. See <a href="#style">Text style and looks</a>.</li>
+        <li><b>Timer:</b> moves to the next slide by itself every few seconds (good for announcement loops).</li>
+        <li><b>⋯</b>: notes for the team (printed on the run sheet, never shown on screen), slides per row, and the
+          background for this item.</li>
+        <li><b>Guitar control</b> (songs with chords): change the key for tonight only. The band's chords on the stage screen
+          change; the library song doesn't.</li>
+      </ul>
+      <h3>Search everything</h3>
+      <p><kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd> opens a search box for service items, songs, Bible verses
+        (<code>jn 3:16</code>) and commands. <kbd>Enter</kbd> shows the result live; <kbd>Alt</kbd>+<kbd>Enter</kbd> adds it
+        to the service.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="outputs">Projector and screens</h2>
+      <h3>The audience screen</h3>
+      <p>Click <span class="ui">Open Output</span> to open the audience screen full screen on the projector. Click the ▾ arrow
+        beside it to choose which display to use. With only one display connected, the output opens in a window so you can test.</p>
+      <p>If the projector cable comes loose, NLPresenter waits for it and reopens the output on its own when the projector
+        comes back.</p>
+      <h3>Wireless audience screens</h3>
+      <p>Any TV, laptop or tablet with a web browser on the same network can mirror the projector. In the Open Output ▾ menu,
+        choose <span class="ui">Wireless audience screens</span> and open the address it shows on that device
+        (it looks like <code>http://192.168.1.20:4777/#/display</code>). Tap the screen once to go full screen.</p>
+      <h3>Crash recovery</h3>
+      <p>If the computer restarts or the app closes unexpectedly, NLPresenter offers to <b>resume where you left off</b>:
+        the same item, the same slide, with the output on the same display.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="rehearse">Rehearsal and Sunday check</h2>
+      <h3>Rehearsal mode</h3>
+      <p>Click <span class="ui">Rehearse</span> in the top bar. You can now click through the whole service while the
+        projector, stage screens, livestream and phones keep showing what they showed before. Phone remote buttons are paused.</p>
+      <p>Turn on <span class="ui">Stage screens follow</span> to let the band practise with lyrics and chords on the stage
+        screen while the projector stays put. Click <span class="ui">End rehearsal</span> to return to normal.</p>
+      <h3>Sunday check</h3>
+      <p>Service menu → <span class="ui">Sunday check…</span>. It also opens by itself the first time you rehearse each day. It looks for:</p>
+      <ul>
+        <li>pictures or videos that have been moved or deleted;</li>
+        <li>items with no slides, and slides whose text is too small to read;</li>
+        <li>whether the projector is connected and the output is open;</li>
+        <li>phone sharing being off when you've used remotes before;</li>
+        <li>low disk space, an old backup, and a service planned longer than 90 minutes.</li>
+      </ul>
+      <p>Most problems have a button to fix them right there.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="songs">Songs</h2>
+      <figure>
+        <img src="img/songs.jpg" alt="The Songs tab: search box, tag filters, the song list, and a preview of Amazing Grace." loading="lazy">
+        <figcaption>The Songs tab. Click a song to preview its slides.</figcaption>
+      </figure>
+      <ul>
+        <li><b>Search</b> by title, author, tag or any line of the lyrics.</li>
+        <li><b>Tags</b> such as “hymn”, “fast” or “Christmas” filter the list.</li>
+        <li><b>Sort</b> by title, last used or most used. Each song shows when it was last used.</li>
+        <li><kbd>↑</kbd>/<kbd>↓</kbd> select a song, <kbd>Enter</kbd> adds it to the service, <kbd>E</kbd> edits it.</li>
+        <li><b>Usage report</b> lists how often each song was used over a period, with CCLI numbers, and exports to a
+          spreadsheet (CSV).</li>
+        <li><b>Export</b> saves the songs in the current list as text files.</li>
+      </ul>
+
+      <!-- ======================================================= -->
+      <h2 id="song-editor">Song editor</h2>
+      <figure>
+        <img src="img/editor.jpg" alt="The song editor: title, author, copyright and CCLI fields, slide cards labelled Verse 1 to Verse 3, and a live preview." loading="lazy">
+        <figcaption>The song editor, with a preview of the selected slide on the right.</figcaption>
+      </figure>
+      <p>Click <span class="ui">New song</span>, or select a song and click <span class="ui">Edit</span>. Each card is one slide.</p>
+      <ul>
+        <li><b>Labels</b> (Verse 1, Chorus, Bridge…) are coloured by type and let you jump to sections during the service.</li>
+        <li><b>Edit all as text</b> shows the whole song as plain text. Put a blank line between slides and a heading in square
+          brackets above each section:</li>
+      </ul>
+<pre>[Verse 1]
+Amazing grace! How sweet the sound
+That saved a wretch like me
+
+I once was lost, but now am found
+Was blind, but now I see
+
+[Chorus]
+...</pre>
+      <ul>
+        <li><b>Alt+Enter</b> in a slide splits it in two at the cursor.</li>
+        <li><b>Notes for stage:</b> click the note icon on a slide to add a cue for the band (“Build”, “Drums out”). It shows
+          on the stage screen only.</li>
+        <li><b>Template:</b> a look just for this song.</li>
+        <li><b>Copyright</b> and <b>CCLI song #</b> feed the copyright footer. See <a href="#ccli">Copyright and CCLI</a>.</li>
+      </ul>
+      <h3>Two languages on one slide</h3>
+      <p>Put a line with only <code>--</code> between the two languages. The second language shows smaller and in italics.
+        <span class="ui">Languages on screen</span> chooses both, only the first, or only the second.</p>
+<pre>Amazing grace! How sweet the sound
+--
+Kahanga-hangang biyaya</pre>
+      <p>A dot on a slide means its text will be shrunk a lot to fit. Split long slides so they stay readable.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="chords">Chords</h2>
+      <p>Chords go in square brackets right before the syllable they fall on:</p>
+<pre>[G]Amazing [C]grace, how [G]sweet the sound</pre>
+      <ul>
+        <li>Any chord works: <code>Bbmaj9</code>, <code>F#m7b5</code>, <code>D/F#</code>. So do Nashville numbers like
+          <code>[1] [4] [6m]</code>.</li>
+        <li>A line with only chords (<code>[G] [C] | [D] x2</code>) is an instrumental line.</li>
+        <li>Pasting a chord sheet with the chords on the line above the words converts it automatically.</li>
+        <li>Pick the song's <b>Key</b>, and use <b>Transpose −/+</b> to rewrite all the chords in a new key.</li>
+        <li>The chord palette shows the chords in the song's key. Click one to insert it at the cursor.</li>
+      </ul>
+      <div class="note"><b class="lbl">Who sees chords</b>
+        <p>Chords only ever appear on <b>stage screens</b>. The projector, livestream and phone remote always show the words alone.
+          Stage &amp; OBS tab → <span class="ui">Chords</span>: Off, Standard (G, C, D) or Nashville (1, 4, 5).</p></div>
+
+      <!-- ======================================================= -->
+      <h2 id="find-song">Find and import songs</h2>
+      <h3>Search online</h3>
+      <p>Songs tab → <span class="ui">Find a song</span>. When a library search finds nothing, a
+        <span class="ui">Search online</span> button does the same for what you typed.</p>
+      <ol>
+        <li>Type the title. Adding the artist helps, for example “Way Maker Sinach”.</li>
+        <li>Click a result to preview it. A badge marks songs you already have.</li>
+        <li>Click <span class="ui">Open in song editor</span>. Check the lyrics and section names, add chords if you like, and save.</li>
+      </ol>
+      <p>Online results are lyrics only, without chords. NLPresenter guesses the verses and chorus from what repeats, so
+        expect to rename a section now and then.</p>
+      <h3>SongSelect and song files</h3>
+      <p><span class="ui">Search SongSelect</span> opens CCLI SongSelect in your browser (you need your church's SongSelect
+        account). Download the song there, then drop the file onto the Find a song window or use
+        <span class="ui">Import</span> in the Songs tab. These files are read with their chords, key, authors and CCLI number:</p>
+      <ul>
+        <li>ChordPro: <code>.cho</code>, <code>.chordpro</code>, <code>.chopro</code>, <code>.crd</code>, <code>.pro</code></li>
+        <li>SongSelect lyrics (<code>.txt</code>) and <code>.usr</code> files</li>
+        <li>Plain text files exported from NLPresenter</li>
+      </ul>
+
+      <!-- ======================================================= -->
+      <h2 id="scripture">Scripture</h2>
+      <figure>
+        <img src="img/scripture.jpg" alt="The Scripture tab with John 3:16–18 selected in the King James Version." loading="lazy">
+        <figcaption>Search by reference or by words, then show the verses or add them to the service.</figcaption>
+      </figure>
+      <h3>Finding verses</h3>
+      <ul>
+        <li>Type a reference: <code>jn 3:16-18</code>, <code>1 cor 13</code>, <code>ps 23 1-3</code>, <code>Jude 3</code>.</li>
+        <li>Or type words you remember: <code>loved the world</code>.</li>
+        <li>Or browse: pick a book, then a chapter.</li>
+      </ul>
+      <h3>Selecting and showing</h3>
+      <ul>
+        <li>Click a verse to select it. <kbd>Shift</kbd>+click selects a range; <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+click adds single verses.</li>
+        <li><span class="ui">Show live</span> (or double-click, or <kbd>Enter</kbd>) puts them on screen.
+          <span class="ui">Add to service</span> adds them to the order.</li>
+        <li><b>Verses per slide:</b> 1 to 4, or all on one slide. Turn small verse numbers on or off.</li>
+        <li><b>Compare:</b> show up to three translations at once, side by side or stacked.</li>
+        <li><b>Recent and pinned:</b> under the book list are your last 30 passages and any you pinned with ☆. Pinned passages
+          also appear on the phone remote.</li>
+      </ul>
+      <p>Scripture can have its own text style, separate from songs: click <span class="ui">Text style</span> in the Scripture tab.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="bibles">Bible translations</h2>
+      <p>Click the translation button at the top left of the Scripture tab.</p>
+      <ul>
+        <li><b>Built in:</b> King James Version, American Standard Version and the Tagalog Unlocked Literal Bible.</li>
+        <li><b>Browse translation library…</b> lists about 1,300 free translations in over 1,000 languages. Click
+          <span class="ui">Install</span> to download one. Book names come in that language, so <code>Juan 3:16</code> works.</li>
+        <li><b>Import Bible XML file…</b> adds a Bible from a Zefania XML file.</li>
+        <li>Hover a translation and click the <b>pencil</b> to change its short code (for example <code>NKJV</code>). The code
+          appears on the slides, like “John 3:16 (NKJV)”.</li>
+      </ul>
+      <div class="warn"><b class="lbl">Copyright</b>
+        <p>Many modern translations are under copyright. Only import Bibles your church has the right to use.</p></div>
+
+      <!-- ======================================================= -->
+      <h2 id="media">Media and backgrounds</h2>
+      <figure>
+        <img src="img/media.jpg" alt="The Media tab showing animated background loops." loading="lazy">
+        <figcaption>The Media tab with its animated background loops.</figcaption>
+      </figure>
+      <h3>Importing</h3>
+      <p>Click <span class="ui">Import</span> or drag files onto the Media tab.</p>
+      <ul>
+        <li>Pictures: JPG, PNG, GIF, WebP, AVIF, BMP.</li>
+        <li>Videos: MP4, WebM, MOV.</li>
+        <li>Music for the player: MP3, M4A, AAC, WAV, OGG, Opus, FLAC.</li>
+        <li>Background loop packs (<code>.json</code>).</li>
+      </ul>
+      <p>Imported files are copied into NLPresenter, so you can move or delete the originals.
+        <span class="ui">Link folder…</span> lists a folder instead without copying it. New files in that folder show up
+        each time you open the Media tab.</p>
+      <h3>Using a picture or video</h3>
+      <p>Select a file, then use it as:</p>
+      <ul>
+        <li>the <b>default background</b> behind all slides;</li>
+        <li>the background of <b>one service item</b>;</li>
+        <li>a <b>service item</b> of its own (a slideshow of pictures, or a video that plays once);</li>
+        <li>the church <b>logo</b> in a corner of the screen (pictures only).</li>
+      </ul>
+      <p><b>On the screen</b> decides how a picture or video fills the screen: <i>Fill screen</i> (crops the edges),
+        <i>Fit to screen</i> (adds bars), <i>Stretch</i>, or <i>Original size</i>. Settings → <span class="ui">New pictures &amp; videos</span> sets the choice for new files.</p>
+      <h3>Video controls</h3>
+      <p>When a video is live, the live panel shows play/pause, start over, a seek bar with time left, sound and loop.</p>
+      <h3>Background loops</h3>
+      <p>Loops are moving backgrounds drawn by the app itself, so they use very little computer power and never cover the
+        words. Find them under the <span class="ui">Loops</span> filter.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="presentations">Presentations</h2>
+      <p>Presentation tab → <b>+</b> → <span class="ui">Presentation</span>, or drop the file on the Media tab. Each page
+        becomes a slide.</p>
+      <ul>
+        <li><b>PDF</b> works on every computer.</li>
+        <li><b>PowerPoint, Keynote and OpenDocument</b> files need PowerPoint, Keynote or LibreOffice installed to convert
+          them. If none is installed, save the file as a PDF and import that.</li>
+        <li>Speaker notes from PowerPoint files show on the stage screen.</li>
+      </ul>
+
+      <!-- ======================================================= -->
+      <h2 id="text-slides">Text slides</h2>
+      <p>For announcements and sermon points: Presentation tab → <b>+</b> → <span class="ui">Text slides</span>, then
+        <span class="ui">Edit slides</span>. Each slide has an optional title and body text. Pasting several paragraphs makes
+        several slides.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="web-camera">Websites and cameras</h2>
+      <p>Presentation tab → <b>+</b> → <span class="ui">Website / vdo.ninja</span> or <span class="ui">Camera / capture device</span>. Show one as
+        its own item, behind the lyrics of an item, or as the default background.</p>
+      <ul>
+        <li><b>Websites</b> show at full projector size. Use a vdo.ninja link to bring in a phone camera or a remote guest.</li>
+        <li><b>Cameras</b> can be a webcam, USB camera or capture card on this computer.</li>
+        <li>Sound is off at first. Turn it on to play the sound on the audience screen.</li>
+      </ul>
+
+      <!-- ======================================================= -->
+      <h2 id="style">Text style and looks</h2>
+      <p>Click <span class="ui">Text style</span> (Presentation tab) to change how words look on screen. Changes show at once
+        on every screen.</p>
+      <ul>
+        <li><b>Text:</b> font, size, weight, colour, alignment, margins, line height, letter spacing, capitals and italics.</li>
+        <li><b>Effects:</b> shadow, outline, glow, and a background behind the text: behind each line, as one block, or as a
+          full-width band.</li>
+        <li><b>Transition:</b> how slides change: cut, fade, rise or zoom, and how fast.</li>
+        <li><b>Logo:</b> corner, size and opacity of your church logo.</li>
+      </ul>
+      <h3>Looks</h3>
+      <p>A look is a saved text style, with or without a background. Classic, Lower third, Clean and Bold come built in;
+        <span class="ui">Save as template…</span> saves your own. Give a song its own look in the song editor, or one service
+        item its own look with <span class="ui">Look</span> in the slide grid.</p>
+      <h3>Label colours</h3>
+      <p>Slide labels are coloured by type: verses violet, choruses blue, bridges amber, and so on. Click a label in the slide
+        grid to change its colour.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="countdown">Countdown</h2>
+      <figure>
+        <img src="img/countdown.jpg" alt="The Countdown tab with a title, timer mode, where to show it, and background choices." loading="lazy">
+        <figcaption>A countdown before the service.</figcaption>
+      </figure>
+      <ul>
+        <li><b>Timer mode:</b> a duration (5:00), until a time of day (10:00 AM), or a clock.</li>
+        <li><b>Show on:</b> the audience screen, the stage, or both.</li>
+        <li>A title, an optional line under it, text sizes and its own background.</li>
+        <li><b>Overtime</b> keeps counting up in red after zero.</li>
+        <li><b>At 0:00, go live with the first item</b> starts the service on time by itself.</li>
+      </ul>
+      <p>When you show a slide, the countdown leaves the audience screen but stays on the stage screen.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="stage">Stage display</h2>
+      <figure>
+        <img src="img/stage.jpg" alt="The Stage &amp; OBS tab: stage messages, layout choices, display options and a stage preview." loading="lazy">
+        <figcaption>The Stage &amp; OBS tab, with a preview of the stage screen.</figcaption>
+      </figure>
+      <p>The stage screen faces the singers and musicians. It shows the current lyrics large, chords, the next line, the clock
+        and timers.</p>
+      <h3>Connecting it</h3>
+      <ul>
+        <li><b>With a cable:</b> a monitor plugged into the computer. Choose it in the Stage &amp; OBS tab.</li>
+        <li><b>Wirelessly:</b> any phone or tablet on the same network. Click <span class="ui">Remote</span> in the top bar,
+          start sharing, and scan the stage QR code in the Stage &amp; OBS tab. The screen stays awake.</li>
+      </ul>
+      <h3>Layouts</h3>
+      <ul>
+        <li><b>Standard:</b> current and next slide.</li>
+        <li><b>Lyrics only:</b> big words without chords, for singers.</li>
+        <li><b>Chords focus:</b> big chords and a thin next-line strip, for the band.</li>
+      </ul>
+      <p>Each tablet can choose its own layout and chords setting from the menu in its corner.</p>
+      <h3>Messages</h3>
+      <p>Type a message such as “Repeat chorus” and press <kbd>Enter</kbd>, or click a quick message. It flashes on the stage
+        screen. Turn on <span class="ui">Flash until cleared</span> for urgent ones.</p>
+      <h3>Options</h3>
+      <p>Show or hide the next slide, the clock, the service timer, item time left, the song title and the next song. You can
+        also show a small copy of the audience screen and the second language of bilingual songs.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="overlay">Livestream overlay</h2>
+      <p>The overlay puts lyrics and Bible verses on your livestream over a transparent background.</p>
+      <ol>
+        <li>Click <span class="ui">Remote</span> in the top bar and start sharing.</li>
+        <li>Stage &amp; OBS tab → <span class="ui">Broadcast overlay</span> → copy the link.</li>
+        <li>In OBS, add a <b>Browser</b> source with that link, at 1920 × 1080. vMix works the same way with a Web Browser input.</li>
+      </ol>
+      <p>Choose where the words sit (lower third, centre or top), whether to add a dark band behind them, and whether to show
+        the Bible reference and the countdown.</p>
+      <h3>Name captions</h3>
+      <p>Show a name and title such as “Ptr. Juan Dela Cruz · Senior Pastor” in the lower left. Save captions you use often,
+        hide them after a few seconds, and show them on the livestream only or on the audience screen too.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="remote">Phone remote</h2>
+      <figure>
+        <img class="phone" src="img/remote.jpg" alt="The phone remote showing the live slide, the service flow, and Previous, Hide, Black and Next buttons." loading="lazy">
+        <figcaption>The phone remote.</figcaption>
+      </figure>
+      <ol>
+        <li>Make sure the phone is on the same Wi-Fi network as the computer.</li>
+        <li>Click <span class="ui">Remote</span> in the top bar → <span class="ui">Start network sharing</span>.</li>
+        <li>Scan the QR code with the phone's camera and enter the 4-digit PIN.</li>
+      </ol>
+      <p>The remote shows the live slide and has big Previous, Hide, Black and Next buttons. Its tabs:</p>
+      <ul>
+        <li><b>Flow:</b> the service order. Tap an item to jump to it.</li>
+        <li><b>Slides:</b> the slides of the live item.</li>
+        <li><b>Bible:</b> search for verses and show them, or tap a pinned passage.</li>
+        <li><b>Chat:</b> message the operator. Messages pop up beside the chat icon in the top bar, and the operator can reply.
+          Quick-reply buttons can be set in Settings → <span class="ui">Phone remote</span>.</li>
+      </ul>
+      <p>A new PIN is made each time you start sharing. Too many wrong PINs lock that phone out for a minute.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="control-api">Stream Deck and clickers</h2>
+      <p>Presentation clickers work out of the box: they send Page Down/Page Up, or <kbd>.</kbd> for black.</p>
+      <p>For a Stream Deck (through Bitfocus Companion) or other hardware buttons, turn on
+        <span class="ui">Allow control API</span> in the Remote panel. Then send web requests to the computer
+        (replace the address and PIN with your own):</p>
+<pre>POST http://192.168.1.20:4777/api/next?pin=1234
+POST http://192.168.1.20:4777/api/prev?pin=1234
+POST http://192.168.1.20:4777/api/black?pin=1234
+POST http://192.168.1.20:4777/api/hideText?pin=1234
+POST http://192.168.1.20:4777/api/clear?pin=1234
+POST http://192.168.1.20:4777/api/goto?pin=1234&amp;item=3&amp;slide=2
+GET  http://192.168.1.20:4777/api/status</pre>
+      <p>Items are numbered from 1, not counting section headers. While the control API is on, the PIN stays the same between
+        sessions so your buttons keep working.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="printing">Printing</h2>
+      <p>Service menu → <span class="ui">Print / PDF…</span>. Print it or save it as a PDF:</p>
+      <ul>
+        <li><b>Run sheet:</b> the numbered order of service with keys, slide counts and team notes.</li>
+        <li><b>Lyrics:</b> the run sheet plus all the words.</li>
+        <li><b>Chord charts:</b> one song per page with chords above the words, in tonight's key, as letters or Nashville numbers.</li>
+      </ul>
+      <p>The church name from Settings → <span class="ui">Church</span> appears at the top.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="ccli">Copyright and CCLI</h2>
+      <p>If your church has a CCLI licence, enter its number in Settings → <span class="ui">Church</span>. Then fill in
+        <b>Copyright</b> and <b>CCLI song #</b> for each song in the song editor.</p>
+      <p>A small footer such as “© 2020 Example Music · CCLI Song #1234567 · CCLI Licence #654321” appears at the lower left of
+        the audience screen. Show it on the first and last slide of a song (the default), on every slide, or not at all, and
+        optionally on the livestream too. It never shows on stage screens.</p>
+      <p>NLPresenter records the first time each song is used in a service each day (not during rehearsal). Songs tab →
+        <span class="ui">Usage report</span> lists the songs used in a period, with their CCLI numbers, ready for your CCLI report.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="music">Music player</h2>
+      <p>Click ♫ in the top bar for a small player you can drag anywhere. Add songs from the media library, drag them into
+        order, and use shuffle, repeat and volume. Music plays through the computer's sound output, and the playlist is remembered.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="backup">Backup and restore</h2>
+      <ul>
+        <li><b>Automatic backups</b> are on from the start. NLPresenter backs up once a day while it's open, and when you
+          quit, keeping the newest 10. Settings → <span class="ui">Automatic backups</span> changes the folder. A folder that
+          syncs to the cloud (iCloud Drive, OneDrive, Google Drive) protects you if the computer is lost.</li>
+        <li><b>Full backup</b> (Settings → <span class="ui">Backup &amp; restore</span>) saves one <code>.nlbackup</code>
+          file with all your songs, services, settings, imported Bibles, loops and media.</li>
+        <li><b>Restore</b> adds whatever is missing from a backup and skips what you already have, so it never deletes anything.</li>
+      </ul>
+      <div class="tip"><b class="lbl">Moving to a new computer</b>
+        <p>Make a full backup on the old computer, install NLPresenter on the new one, and restore the backup there.</p></div>
+
+      <!-- ======================================================= -->
+      <h2 id="settings">Settings</h2>
+      <p>Click the gear in the top bar.</p>
+      <table>
+        <tr><th>Section</th><th>What's there</th></tr>
+        <tr><td>Appearance</td><td>Interface language, interface size (80–125%) and accent colour.</td></tr>
+        <tr><td>Church</td><td>Church name, CCLI licence number and the copyright footer.</td></tr>
+        <tr><td>Display</td><td>Display options, including <i>Video decoding: CPU only</i> for computers where videos flicker.</td></tr>
+        <tr><td>New pictures &amp; videos</td><td>How newly imported pictures and videos fill the screen.</td></tr>
+        <tr><td>Phone remote</td><td>Quick-reply buttons for the chat.</td></tr>
+        <tr><td>Bible texts</td><td>The translations you have installed.</td></tr>
+        <tr><td>Backup &amp; restore</td><td>Full backup and restore.</td></tr>
+        <tr><td>Automatic backups</td><td>Turn them on or off and choose the folder.</td></tr>
+      </table>
+      <h3>Languages</h3>
+      <p>The app comes in English, Tagalog, Spanish, Portuguese, French, Italian, Korean, Chinese (Simplified), Indonesian,
+        Hindi, Tamil, Russian and Ukrainian. Only the app's own buttons and labels change. Your songs, Bible text and service
+        names stay as you typed them. Phones and tablets can pick their own language.</p>
+      <p><kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>=</kbd> and <kbd>-</kbd> make the interface bigger or smaller;
+        <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>0</kbd> returns to 100%.</p>
+
+      <!-- ======================================================= -->
+      <h2 id="shortcuts">Keyboard shortcuts</h2>
+      <p>On a Mac use <kbd>⌘</kbd>; on Windows use <kbd>Ctrl</kbd>. Press <kbd>?</kbd> in the app to see this list. Live keys
+        do nothing while you're typing in a box or while a dialog is open.</p>
+      <h3>Live</h3>
+      <table>
+        <tr><th>Keys</th><th>Action</th></tr>
+        <tr><td><kbd>→</kbd> <kbd>Space</kbd> <kbd>Page Down</kbd></td><td>Next slide</td></tr>
+        <tr><td><kbd>←</kbd> <kbd>Page Up</kbd></td><td>Previous slide</td></tr>
+        <tr><td><kbd>↓</kbd> <kbd>↑</kbd></td><td>Next / previous slide (except on the Songs, Scripture and Media tabs)</td></tr>
+        <tr><td><kbd>`</kbd> or <kbd>.</kbd></td><td>Black screen on / off</td></tr>
+        <tr><td><kbd>H</kbd></td><td>Hide the words / show them again</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Clear the screen (or close a dialog)</td></tr>
+      </table>
+      <h3>Jump within a song</h3>
+      <table>
+        <tr><th>Keys</th><th>Action</th></tr>
+        <tr><td><kbd>C</kbd></td><td>Next chorus</td></tr>
+        <tr><td><kbd>V</kbd> then <kbd>1</kbd>–<kbd>9</kbd></td><td>That verse</td></tr>
+        <tr><td><kbd>P</kbd></td><td>Pre-chorus</td></tr>
+        <tr><td><kbd>B</kbd> or <kbd>R</kbd></td><td>Bridge</td></tr>
+        <tr><td><kbd>E</kbd></td><td>Ending, tag or outro</td></tr>
+        <tr><td>Number, then <kbd>Enter</kbd></td><td>That slide (e.g. <kbd>1</kbd><kbd>2</kbd> <kbd>Enter</kbd>)</td></tr>
+      </table>
+      <p>Spanish and Tagalog section names count too (Coro, Verso, Puente, Talata, Tulay…).</p>
+      <h3>Everywhere</h3>
+      <table>
+        <tr><th>Keys</th><th>Action</th></tr>
+        <tr><td><kbd>F1</kbd>–<kbd>F6</kbd> or <kbd>⌘</kbd> <kbd>1</kbd>–<kbd>6</kbd></td><td>Switch tab (Presentation, Songs, Scripture, Media, Countdown, Stage &amp; OBS)</td></tr>
+        <tr><td><kbd>⌘</kbd> <kbd>K</kbd></td><td>Search songs, verses, items and commands</td></tr>
+        <tr><td><kbd>⌘</kbd> <kbd>Z</kbd></td><td>Undo a change to the service order</td></tr>
+        <tr><td><kbd>Shift</kbd> <kbd>⌘</kbd> <kbd>Z</kbd></td><td>Redo</td></tr>
+        <tr><td><kbd>⌘</kbd> <kbd>=</kbd> / <kbd>-</kbd> / <kbd>0</kbd></td><td>Interface bigger / smaller / 100%</td></tr>
+        <tr><td><kbd>?</kbd></td><td>Show all shortcuts</td></tr>
+      </table>
+      <h3>Songs tab</h3>
+      <table>
+        <tr><th>Keys</th><th>Action</th></tr>
+        <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Select a song</td></tr>
+        <tr><td><kbd>Enter</kbd></td><td>Add it to the service</td></tr>
+        <tr><td><kbd>E</kbd></td><td>Edit it</td></tr>
+        <tr><td><kbd>Delete</kbd></td><td>Delete it</td></tr>
+      </table>
+
+      <!-- ======================================================= -->
+      <h2 id="faq">Questions and answers</h2>
+      <h3>Does it need the internet?</h3>
+      <p>No. Everything works offline. You only need the internet to install Bible translations from the library or to
+        search for song lyrics.</p>
+      <h3>The output opens on the wrong screen.</h3>
+      <p>Click the ▾ beside <span class="ui">Open Output</span> and choose the right display. Also check that the projector is
+        set to <i>extend</i> your desktop, not mirror it.</p>
+      <h3>My phone can't connect to the remote.</h3>
+      <ul>
+        <li>The phone must be on the same Wi-Fi as the computer, not on mobile data or a guest network.</li>
+        <li>On Windows, allow NLPresenter through the firewall for private networks.</li>
+        <li>Some church networks block devices from talking to each other. A small router or the computer's hotspot works around this.</li>
+      </ul>
+      <h3>Videos flicker or stutter.</h3>
+      <p>Turn on Settings → Display → <span class="ui">Video decoding: CPU only</span> and restart NLPresenter.</p>
+      <h3>A PowerPoint file won't import.</h3>
+      <p>PowerPoint, Keynote or LibreOffice must be installed to convert it. If none is, open the file elsewhere, save it as a
+        PDF, and import the PDF.</p>
+      <h3>Where is my data stored?</h3>
+      <p>On your computer only:</p>
+      <ul>
+        <li><b>Mac:</b> <code>~/Library/Application Support/NLPresenter</code></li>
+        <li><b>Windows:</b> <code>%APPDATA%\NLPresenter</code></li>
+      </ul>
+      <p>Use <a href="#backup">backups</a> rather than copying these folders by hand.</p>
+      <h3>Can the congregation see the chords?</h3>
+      <p>No. Chords only ever show on stage screens.</p>
+    </main>
+  </div>
+
+  <footer class="site">
+    NLPresenter · Developed by Ryan Baguasan · <a href="index.html">Home</a> · <a href="#about">Back to top</a>
+  </footer>
+
+  <script>
+    // Copy the sidebar into the mobile "Contents" menu, and highlight the section you're reading.
+    (function () {
+      var toc = document.getElementById('toc');
+      var mobile = document.getElementById('toc-mobile');
+      mobile.innerHTML = toc.innerHTML;
+      mobile.addEventListener('click', function (e) {
+        if (e.target.tagName === 'A') mobile.closest('details').open = false;
+      });
+      if (!('IntersectionObserver' in window)) return;
+      var links = {};
+      toc.querySelectorAll('a').forEach(function (a) { links[a.getAttribute('href').slice(1)] = a; });
+      var current = null;
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (!en.isIntersecting) return;
+          if (current) current.classList.remove('on');
+          current = links[en.target.id];
+          if (current) {
+            current.classList.add('on');
+            var r = current.getBoundingClientRect(), t = toc.getBoundingClientRect();
+            if (r.top < t.top || r.bottom > t.bottom) current.scrollIntoView({ block: 'nearest' });
+          }
+        });
+      }, { rootMargin: '-70px 0px -70% 0px' });
+      document.querySelectorAll('.content h2[id]').forEach(function (h) { obs.observe(h); });
+    })();
+  </script>
+</body>
+</html>
