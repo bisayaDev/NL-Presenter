@@ -85,12 +85,12 @@
 
       <!-- ======================================================= -->
       <h2 id="install">Download and install</h2>
-      <p>Download the installer for your computer. The current version is 0.1.0.</p>
+      <p>Download the installer for your computer. The current version is 0.2.0.</p>
       <table>
         <tr><th>Computer</th><th>Download</th><th>Notes</th></tr>
-        <tr><td>Mac with Apple silicon</td><td><a href="https://github.com/bisayaDev/NL-Presenter/releases/download/v0.1.0/NLPresenter-0.1.0-arm64.dmg">NLPresenter-0.1.0-arm64.dmg</a></td><td>M1 and newer. macOS 12 (Monterey) or newer.</td></tr>
-        <tr><td>Mac with Intel</td><td><a href="https://github.com/bisayaDev/NL-Presenter/releases/download/v0.1.0/NLPresenter-0.1.0.dmg">NLPresenter-0.1.0.dmg</a></td><td>macOS 12 (Monterey) or newer.</td></tr>
-        <tr><td>Windows</td><td><a href="https://github.com/bisayaDev/NL-Presenter/releases/download/v0.1.0/NLPresenter.Setup.0.1.0.exe">NLPresenter.Setup.0.1.0.exe</a></td><td>Windows 10 or 11, 64-bit.</td></tr>
+        <tr><td>Mac with Apple silicon</td><td><a href="https://github.com/bisayaDev/NL-Presenter/releases/download/v0.2.0/NLPresenter-0.2.0-arm64.dmg">NLPresenter-0.2.0-arm64.dmg</a></td><td>M1 and newer. macOS 12 (Monterey) or newer.</td></tr>
+        <tr><td>Mac with Intel</td><td><a href="https://github.com/bisayaDev/NL-Presenter/releases/download/v0.2.0/NLPresenter-0.2.0.dmg">NLPresenter-0.2.0.dmg</a></td><td>macOS 12 (Monterey) or newer.</td></tr>
+        <tr><td>Windows</td><td><a href="https://github.com/bisayaDev/NL-Presenter/releases/download/v0.2.0/NLPresenter.Setup.0.2.0.exe">NLPresenter.Setup.0.2.0.exe</a></td><td>Windows 10 or 11, 64-bit.</td></tr>
       </table>
       <p>Not sure which Mac you have? Open the Apple menu → <span class="ui">About This Mac</span>. “Chip: Apple M1” (or M2, M3…)
         means Apple silicon; “Processor: Intel” means Intel. Older versions are on the
@@ -115,7 +115,10 @@
 
       <div class="note"><b class="lbl">Updating</b>
         <p>Install the new version over the old one. Your songs, services, Bibles and media are kept: they are stored
-          separately from the app.</p></div>
+          separately from the app.</p>
+        <p>From version 0.2.0, NLPresenter tells you when a new version is out: a green <span class="ui">Update</span> button
+          appears in the top bar. Click it, then <span class="ui">Download</span> to get the new installer. Nothing installs by
+          itself. You can turn this off, or check by hand, in Settings → <span class="ui">About</span>.</p></div>
 
       <!-- ======================================================= -->
       <h2 id="quick-start">Quick start</h2>
@@ -261,6 +264,22 @@
         beside it to choose which display to use. With only one display connected, the output opens in a window so you can test.</p>
       <p>If the projector cable comes loose, NLPresenter waits for it and reopens the output on its own when the projector
         comes back.</p>
+      <h3>The stage screen</h3>
+      <p>Click <span class="ui">Stage</span> in the top bar, beside Open Output, to open the stage screen on a free display.
+        Its ▾ arrow chooses the display or shows the link for wireless stage tablets. See <a href="#stage">Stage display</a>.</p>
+      <h3>Announcements</h3>
+      <p>Put a short message on the audience screen without stopping the song, such as “Parent of child #12, please come to
+        the nursery”. Stage &amp; OBS tab → <span class="ui">Announcements</span>: type the message and press
+        <kbd>Enter</kbd>.</p>
+      <ul>
+        <li><b>Scroll</b> runs the message along the bottom of the screen 1, 2, 3 or 5 times. <b>Band</b> keeps it still for
+          10 to 60 seconds.</li>
+        <li>Messages sent while one is showing wait their turn. <span class="ui">Stop</span> takes the current one off;
+          <span class="ui">Clear queue</span> empties the rest.</li>
+        <li>Save messages you use every week and send them with one click.</li>
+        <li>They show on the projector and wireless screens, and on the livestream overlay if you tick
+          <span class="ui">Also on OBS overlay</span>. Never on stage screens. Black and Clear hide them.</li>
+      </ul>
       <h3>Wireless audience screens</h3>
       <p>Any TV, laptop or tablet with a web browser on the same network can mirror the projector. In the Open Output ▾ menu,
         choose <span class="ui">Wireless audience screens</span> and open the address it shows on that device
@@ -350,6 +369,8 @@ Kahanga-hangang biyaya</pre>
         <li>Pasting a chord sheet with the chords on the line above the words converts it automatically.</li>
         <li>Pick the song's <b>Key</b>, and use <b>Transpose −/+</b> to rewrite all the chords in a new key.</li>
         <li>The chord palette shows the chords in the song's key. Click one to insert it at the cursor.</li>
+        <li><b>BPM</b> and <b>time signature</b> sit beside the key. Type the tempo, or click <span class="ui">Tap</span> in
+          time with the song. Song files keep them as <code>Tempo:</code> and <code>Time:</code> lines.</li>
       </ul>
       <div class="note"><b class="lbl">Who sees chords</b>
         <p>Chords only ever appear on <b>stage screens</b>. The projector, livestream and phone remote always show the words alone.
@@ -519,7 +540,8 @@ Kahanga-hangang biyaya</pre>
         and timers.</p>
       <h3>Connecting it</h3>
       <ul>
-        <li><b>With a cable:</b> a monitor plugged into the computer. Choose it in the Stage &amp; OBS tab.</li>
+        <li><b>With a cable:</b> a monitor plugged into the computer. Click <span class="ui">Stage</span> in the top bar, or
+          choose the monitor in the Stage &amp; OBS tab.</li>
         <li><b>Wirelessly:</b> any phone or tablet on the same network. Click <span class="ui">Remote</span> in the top bar,
           start sharing, and scan the stage QR code in the Stage &amp; OBS tab. The screen stays awake.</li>
       </ul>
@@ -536,6 +558,15 @@ Kahanga-hangang biyaya</pre>
       <h3>Options</h3>
       <p>Show or hide the next slide, the clock, the service timer, item time left, the song title and the next song. You can
         also show a small copy of the audience screen and the second language of bilingual songs.</p>
+      <h3>Tempo, beat pulse and metronome</h3>
+      <p>When the song has a BPM, the stage screen shows it beside the key, for example “72 BPM · 4/4”.</p>
+      <ul>
+        <li><b>Beat pulse</b> (Stage &amp; OBS tab): dots that light up on each beat, with beat 1 in amber. <i>Pulse + frame</i>
+          also flashes a thin frame round the screen, for the drummer. Every stage screen and tablet pulses together. Click
+          <span class="ui">Beat 1 now</span> on the downbeat to line it up with the band.</li>
+        <li><b>Metronome</b> (live panel): a click through the computer's speakers at the song's tempo, with beat 1 accented.
+          It plays on this computer only, never on the projector or livestream.</li>
+      </ul>
 
       <!-- ======================================================= -->
       <h2 id="overlay">Livestream overlay</h2>
@@ -565,7 +596,9 @@ Kahanga-hangang biyaya</pre>
       <p>The remote shows the live slide and has big Previous, Hide, Black and Next buttons. Its tabs:</p>
       <ul>
         <li><b>Flow:</b> the service order. Tap an item to jump to it.</li>
-        <li><b>Slides:</b> the slides of the live item.</li>
+        <li><b>Slides:</b> the slides of the live item. On a song with chords it also shows the key and tempo, with
+          <b>− / +</b> buttons to change the key a semitone at a time and ↺ to go back to the written key. The stage screens
+          change at once; the song in the library doesn't.</li>
         <li><b>Bible:</b> search for verses and show them, or tap a pinned passage.</li>
         <li><b>Chat:</b> message the operator. Messages pop up beside the chat icon in the top bar, and the operator can reply.
           Quick-reply buttons can be set in Settings → <span class="ui">Phone remote</span>.</li>
@@ -584,8 +617,10 @@ POST http://192.168.1.20:4777/api/black?pin=1234
 POST http://192.168.1.20:4777/api/hideText?pin=1234
 POST http://192.168.1.20:4777/api/clear?pin=1234
 POST http://192.168.1.20:4777/api/goto?pin=1234&amp;item=3&amp;slide=2
+POST http://192.168.1.20:4777/api/transpose?pin=1234&amp;by=1
 GET  http://192.168.1.20:4777/api/status</pre>
-      <p>Items are numbered from 1, not counting section headers. While the control API is on, the PIN stays the same between
+      <p><code>transpose</code> moves the live song up (<code>by=1</code>) or down (<code>by=-1</code>) a semitone;
+        <code>by=0</code> goes back to the written key. Items are numbered from 1, not counting section headers. While the control API is on, the PIN stays the same between
         sessions so your buttons keep working.</p>
 
       <!-- ======================================================= -->
@@ -639,6 +674,8 @@ GET  http://192.168.1.20:4777/api/status</pre>
         <tr><td>Bible texts</td><td>The translations you have installed.</td></tr>
         <tr><td>Backup &amp; restore</td><td>Full backup and restore.</td></tr>
         <tr><td>Automatic backups</td><td>Turn them on or off and choose the folder.</td></tr>
+        <tr><td>About</td><td>The version you have, the data folder, and update notices: <i>Tell me when a new version is out</i>
+          and <i>Check now</i>.</td></tr>
       </table>
       <h3>Languages</h3>
       <p>The app comes in English, Tagalog, Spanish, Portuguese, French, Italian, Korean, Chinese (Simplified), Indonesian,
