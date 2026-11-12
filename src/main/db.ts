@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { gunzipSync } from 'node:zlib'
 import { BOOKS, formatRef, parseReference } from '@shared/bible'
 import type { BibleInfo, BibleBook, Service, ServiceSummary, Song, SongUsage, Verse, VerseHit } from '@shared/types'
+import { normalizeBpm, normalizeTimeSignature } from '@shared/tempo'
 import type { ParsedBible } from './zefania'
 
 let db: DatabaseSync
@@ -75,6 +76,8 @@ export function openDb(file: string): void {
   if (!songCols.has('copyright')) db.exec('ALTER TABLE songs ADD COLUMN copyright TEXT')
   if (!songCols.has('ccli')) db.exec('ALTER TABLE songs ADD COLUMN ccli TEXT')
   if (!songCols.has('language_mode')) db.exec('ALTER TABLE songs ADD COLUMN language_mode TEXT')
+  if (!songCols.has('bpm')) db.exec('ALTER TABLE songs ADD COLUMN bpm INTEGER')
+  if (!songCols.has('time_signature')) db.exec('ALTER TABLE songs ADD COLUMN time_signature TEXT')
   const serviceCols = new Set(db.prepare('PRAGMA table_info(services)').all().map((c) => c.name as string))
   if (!serviceCols.has('date')) db.exec('ALTER TABLE services ADD COLUMN date TEXT')
   // Song usage: one row per song, service and day it went live.
@@ -116,6 +119,8 @@ const toSong = (r: Row): Song => ({
   copyright: (r.copyright as string) || undefined,
   ccli: (r.ccli as string) || undefined,
   languageMode: r.language_mode === 'primary' || r.language_mode === 'secondary' ? r.language_mode : undefined,
+  bpm: normalizeBpm(r.bpm),
+  timeSignature: normalizeTimeSignature(r.time_signature),
   tags: JSON.parse(r.tags as string),
   slides: JSON.parse(r.slides as string),
   updatedAt: r.updated_at as number
@@ -128,11 +133,12 @@ export function listSongs(): Song[] {
 export function saveSong(s: Song): Song {
   const song = { ...s, updatedAt: Date.now() }
   db.prepare(
-    `INSERT INTO songs (id, title, author, tags, slides, key, template_id, copyright, ccli, language_mode, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO songs (id, title, author, tags, slides, key, template_id, copyright, ccli, language_mode, bpm, time_signature, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET title=excluded.title, author=excluded.author, tags=excluded.tags,
        slides=excluded.slides, key=excluded.key, template_id=excluded.template_id, copyright=excluded.copyright,
-       ccli=excluded.ccli, language_mode=excluded.language_mode, updated_at=excluded.updated_at`
+       ccli=excluded.ccli, language_mode=excluded.language_mode, bpm=excluded.bpm, time_signature=excluded.time_signature,
+       updated_at=excluded.updated_at`
   ).run(
     song.id,
     song.title,
@@ -144,6 +150,8 @@ export function saveSong(s: Song): Song {
     song.copyright?.trim() || null,
     song.ccli?.trim() || null,
     song.languageMode && song.languageMode !== 'both' ? song.languageMode : null,
+    normalizeBpm(song.bpm) ?? null,
+    normalizeTimeSignature(song.timeSignature) ?? null,
     song.updatedAt
   )
   return song

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { AlignCenter, AlignLeft, AlignRight, Monitor, MonitorOff, Send, X } from 'lucide-react'
+import { AlignCenter, AlignLeft, AlignRight, Monitor, MonitorOff, RotateCcw, Send, X } from 'lucide-react'
 import type { DisplayInfo, ScreensStatus } from '@shared/types'
 import StageView from '@/components/StageView'
 import NetworkPanel from '@/components/NetworkPanel'
 import BroadcastPanel from '@/components/BroadcastPanel'
 import OverlayView from '@/components/OverlayView'
 import CaptionPanel from '@/components/CaptionPanel'
-import { buildFrame, buildSnapshot, buildStage, useApp } from '@/store/useApp'
+import { buildFrame, buildSnapshot, buildStage, liveTempo, useApp } from '@/store/useApp'
+import { tempoLabel } from '@shared/tempo'
+import TickerPanel from '@/components/TickerPanel'
 import { useT } from '@/i18n'
 
 // Keys only: translated at render (the message is sent in the operator's language).
@@ -19,7 +21,7 @@ export default function StageTab() {
   const { setStage } = state
   const [draft, setDraft] = useState(state.stage.message)
   const overlay = buildSnapshot(state).overlay
-  const overlayEmpty = (overlay.hidden || !overlay.slide?.text) && !overlay.countdown && !overlay.caption
+  const overlayEmpty = (overlay.hidden || !overlay.slide?.text) && !overlay.countdown && !overlay.caption && !overlay.ticker
 
   const send = (text: string): void => {
     setDraft(text)
@@ -109,6 +111,8 @@ export default function StageTab() {
           </div>
         </div>
 
+        <TickerPanel />
+
         <StageLayoutPicker />
 
         <div>
@@ -146,6 +150,8 @@ export default function StageTab() {
           </div>
           <p className="mt-1.5 text-[11.5px] text-dim">{t('stage.chords.note')}</p>
         </div>
+
+        <BeatPulsePicker />
 
         <WiredStage />
 
@@ -218,6 +224,49 @@ function StageLayoutPicker() {
         />
         <span className="w-10 text-right text-[11.5px] tabular-nums text-muted">{Math.round(scale * 100)}%</span>
       </div>
+    </div>
+  )
+}
+
+/** Beat pulse for the band: off, pips in the stage top bar, or pips plus a flashing frame; and "Beat 1 now". */
+function BeatPulsePicker() {
+  const pulse = useApp((s) => s.stage.beatPulse)
+  const setStage = useApp((s) => s.setStage)
+  const restartBeat = useApp((s) => s.restartBeat)
+  const tempo = liveTempo(useApp())
+  const { t } = useT()
+  return (
+    <div>
+      <div className="label-caps mb-1.5">{t('stage.beat.title')}</div>
+      <div className="flex rounded-lg bg-panel-2 p-0.5 text-[12.5px]">
+        {(
+          [
+            ['off', t('stage.beat.off')],
+            ['dot', t('stage.beat.dot')],
+            ['edge', t('stage.beat.edge')]
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            onClick={() => setStage({ beatPulse: id })}
+            className={`min-w-0 flex-1 truncate rounded-md px-1 py-1.5 ${pulse === id ? 'bg-accent-fill text-on-accent' : 'text-muted hover:text-fg'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          onClick={restartBeat}
+          disabled={!tempo}
+          title={t('stage.beat.restartHint')}
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-[12.5px] text-muted hover:text-fg disabled:opacity-40"
+        >
+          <RotateCcw size={13} /> {t('stage.beat.restart')}
+        </button>
+        <span className="min-w-0 truncate text-[12px] tabular-nums text-sky-300">{tempo ? tempoLabel(tempo.bpm, tempo.time) : ''}</span>
+      </div>
+      <p className="mt-1.5 text-[11.5px] text-dim">{t('stage.beat.note')}</p>
     </div>
   )
 }

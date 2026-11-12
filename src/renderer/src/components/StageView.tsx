@@ -7,6 +7,7 @@ import { formatTime, useT } from '@/i18n'
 import FitText from './FitText'
 import ChordText from './ChordText'
 import { StageServiceTimer, StageSlideNotes } from './StageExtras'
+import { StageBeatPips, StageEdgeFlash, StageTempoBadge } from './StageBeat'
 import { transposeKey } from '@shared/chords'
 import { parallelOf } from '@shared/bible'
 
@@ -74,8 +75,10 @@ export default function StageView({
   const nextMax = unit ? Math.round((layout === 'chords' ? 5 : 9) * unit * scale) : 200
   const showNext = frame.showNext && layout !== 'lyrics'
   const itemTime = frame.live && frame.itemStartedAt && frame.itemMinutes ? true : false
+  // Beat pulse (songs with a BPM, when the operator turned it on): pips in the top bar, optionally a flashing frame.
+  const pulse = frame.tempo && frame.beatPulse && frame.beatPulse !== 'off' ? frame.tempo : null
   // Lyrics only hides the bar when it has nothing to show; the service and item timers keep it.
-  const topBar = layout !== 'lyrics' || titles || frame.showClock || !!frame.serviceStartedAt || itemTime
+  const topBar = layout !== 'lyrics' || titles || frame.showClock || !!frame.serviceStartedAt || itemTime || !!pulse
   const logo = frame.logo ? <img src={mediaUrl(frame.logo.src)} className="shrink-0 object-contain" style={{ height: u(5.2), maxWidth: u(16), opacity: frame.logo.opacity }} draggable={false} /> : null
   // Mirror: placed in the side panel, else at the end of the next strip, else in a row under the lyrics (never on top).
   const mirrorIn = !(frame.mirror && audience) ? null : side ? 'side' : showNext ? 'next' : 'row'
@@ -106,6 +109,8 @@ export default function StageView({
             {frame.transpose ? ` (${frame.transpose > 0 ? '+' : ''}${frame.transpose})` : ''}
           </span>
         )}
+        {frame.tempo && <StageTempoBadge tempo={frame.tempo} />}
+        {pulse && <StageBeatPips tempo={pulse} offset={offset} />}
         <span className="flex-1" />
         {frame.showClock && (
           <span className="shrink-0 font-semibold tabular-nums text-white/85" style={{ fontSize: u(3.8) }}>
@@ -116,6 +121,7 @@ export default function StageView({
         {frame.serviceStartedAt ? <StageServiceTimer since={frame.serviceStartedAt} now={now} /> : null}
       </div>
       )}
+      {pulse && frame.beatPulse === 'edge' && <StageEdgeFlash tempo={pulse} offset={offset} />}
       {!topBar && logo && (
         <div className="absolute z-[4]" style={{ left: u(1.6), top: u(1.4) }}>
           {logo}

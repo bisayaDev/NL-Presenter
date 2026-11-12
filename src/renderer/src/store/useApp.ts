@@ -27,7 +27,9 @@ import type {
   VideoPlayback,
   CopyrightSettings
 } from '@shared/types'
-import { stripChords } from '@shared/chords'
+import { hasChords, stripChords } from '@shared/chords'
+import type { BeatPulse } from '@shared/types'
+import { beatsPerBar, type StageTempo } from '@shared/tempo'
 import { languageText, plainLanguages, splitLanguages } from '@shared/bilingual'
 import { labelColor, labelKey } from '@shared/labels'
 import type { SavedSession } from '@shared/outputs'
@@ -38,6 +40,7 @@ import { addToHistory, passageSlides, passageTitle } from '@/lib/passages'
 import { arrangeSlides } from '@/lib/arrangement'
 import { DEFAULT_BG, DEFAULT_STYLE, SEED_SCRIPTURE, SEED_SONGS, uid } from '@/lib/defaults'
 import { baseName, datedName, nextSunday, parseDay, today } from '@/lib/serviceDates'
+import { DEFAULT_TICKER_OPTIONS, queueTicker, restoreTickerOptions, startTicker, type QueuedTicker, type TickerOptions } from '@/lib/ticker'
 
 export type Tab = 'presentation' | 'songs' | 'scripture' | 'media' | 'countdown' | 'stage'
 export type ClickMode = 'live' | 'preview'
@@ -126,6 +129,8 @@ interface AppState {
     showItemTime: boolean
     messageFlash: boolean // flash until cleared (otherwise a new message flashes 3 times)
     messageAlign: 'left' | 'center' | 'right'
+    /** Beat pulse for the band (songs with a BPM): off, a dot in the header, or the dot plus a flashing frame. */
+    beatPulse: BeatPulse
   }
   /** Lower-third name caption for the livestream overlay (and optionally the audience screen). */
   caption: CaptionState
@@ -151,6 +156,10 @@ interface AppState {
   /** Service timer: set by the first go-live of the day (see startTimers). Item timer: when the live item changed. */
   serviceStartedAt: number | null
   itemStartedAt: number | null
+  /** Beat clock for stage screens and the metronome: when beat 1 fell (set when a song goes live; "Beat 1 now"). */
+  beatStartedAt: number | null
+  /** Restart the beat count: beat 1 is now (re-syncs every stage screen and the metronome). */
+  restartBeat: () => void
   resetServiceTimer: () => void
   /** Planned length of an item (undefined = none). */
   setItemMinutes: (itemId: string, minutes: number | undefined) => void
@@ -237,6 +246,17 @@ interface AppState {
   hideCaption: () => void
   saveCaptionPreset: () => void
   deleteCaptionPreset: (index: number) => void
+  /** Audience announcements (lib/ticker.ts): options (saved), the playing message and the queue (per session). */
+  ticker: TickerState
+  tickerPresets: string[] // saved
+  setTickerOptions: (patch: Partial<TickerOptions>) => void
+  /** Queue a message with the current options; it plays as soon as nothing else is (not during rehearsal). */
+  sendTicker: (text: string) => void
+  /** End the playing message (the next queued one follows). */
+  stopTicker: () => void
+  clearTickerQueue: () => void
+  saveTickerPreset: (text: string) => void
+  deleteTickerPreset: (index: number) => void
   recordScripture: (p: ScripturePassage) => void
   togglePin: (p: ScripturePassage) => void
   clearScriptureHistory: () => void
@@ -265,6 +285,11 @@ export interface CaptionState extends Caption {
   visible: boolean
   target: 'overlay' | 'both' // OBS overlay only, or the audience screen too
   autoHide: number // seconds, 0 = stays until hidden
+}
+
+export interface TickerState extends TickerOptions {
+  current: import('@shared/types').TickerMessage | null
+  queue: QueuedTicker[]
 }
 
 const DEFAULT_CAPTION: CaptionState = { name: '', title: '', visible: false, target: 'overlay', autoHide: 0 }
@@ -310,8 +335,13 @@ const songToItem = (s: Song): ServiceItem => ({
   key: s.key,
   ...(s.templateId ? { templateId: s.templateId } : {}),
   ...(s.languageMode && s.languageMode !== 'both' ? { languageMode: s.languageMode } : {}),
+  ...songTempo(s),
   slides: arrangeSlides(s.slides).slides
 })
+
+/** A song's tempo fields for its service items (both keys present, so a removed tempo is cleared on update). */
+const songTempo = (s: Pick<Song, 'bpm' | 'timeSignature'>): Pick<ServiceItem, 'bpm' | 'timeSignature'> =>
+  ({ bpm: s.bpm, timeSignature: s.timeSignature })
 
 /** A song item's slides from the library song, in the item's arrangement (labels the song lost are dropped). */
 function arrangedItem<T extends ServiceItem>(it: T, song: Song): T {
@@ -363,9 +393,11 @@ export const useApp = create<AppState>()((set, get) => ({
   quickChat: null,
   stageSecondLanguage: false,
   countdown: DEFAULT_COUNTDOWN,
-  stage: { message: '', showNext: true, showClock: true, chords: 'standard', layout: 'standard', scale: 1, showTitles: true, mirror: false, showServiceTimer: false, showItemTime: true, messageFlash: false, messageAlign: 'center' },
+  stage: { message: '', showNext: true, showClock: true, chords: 'standard', layout: 'standard', scale: 1, showTitles: true, mirror: false, showServiceTimer: false, showItemTime: true, messageFlash: false, messageAlign: 'center', beatPulse: 'off' },
   caption: DEFAULT_CAPTION,
   captionPresets: [],
+  ticker: { ...DEFAULT_TICKER_OPTIONS, current: null, queue: [] },
+  tickerPresets: [],
   scriptureHistory: [],
   scripturePins: [],
   media: [],
@@ -377,6 +409,8 @@ export const useApp = create<AppState>()((set, get) => ({
   video: null,
   serviceStartedAt: null,
   itemStartedAt: null,
+  beatStartedAt: null,
+  restartBeat: () => set({ beatStartedAt: Date.now() }),
 
   // Single-flight: concurrent calls (e.g. React StrictMode running effects twice) share one load,
   // so a first run can't create two starter services.
@@ -436,12 +470,15 @@ export const useApp = create<AppState>()((set, get) => ({
           showItemTime: true,
           messageFlash: false,
           messageAlign: 'center',
+          beatPulse: 'off',
           ...((s.stage as object) ?? {}),
           message: ''
         },
         // Saved: wording, target and auto-hide. Never visible after a restart.
         caption: { ...DEFAULT_CAPTION, ...((s.caption as Partial<CaptionState>) ?? {}), visible: false },
         captionPresets: Array.isArray(s.captionPresets) ? (s.captionPresets as Caption[]) : [],
+        ticker: { ...restoreTickerOptions(s.tickerOptions), current: null, queue: [] },
+        tickerPresets: Array.isArray(s.tickerPresets) ? (s.tickerPresets as unknown[]).filter((x): x is string => typeof x === 'string') : [],
         scriptureHistory: Array.isArray(s.scriptureHistory) ? (s.scriptureHistory as ScripturePassage[]) : [],
         scripturePins: Array.isArray(s.scripturePins) ? (s.scripturePins as ScripturePassage[]) : [],
         transition: { ...DEFAULT_TRANSITION, ...((s.transition as Partial<Transition>) ?? {}) },
@@ -454,6 +491,8 @@ export const useApp = create<AppState>()((set, get) => ({
       startUsageLog()
       startTimers()
       startCountdownAutoLive()
+      startBeatClock()
+      startTickerQueue()
     })().finally(() => (hydrating = null))),
 
   setTab: (tab) => set({ tab }),
@@ -526,7 +565,8 @@ export const useApp = create<AppState>()((set, get) => ({
     if (prevItem) get().goLive(prevItem.id, prevItem.slides.length - 1)
   },
 
-  clearLive: () => set({ live: null, hideText: false, black: false }),
+  // Clear also ends the announcement and its queue (not during rehearsal: the screens keep theirs).
+  clearLive: () => set((s) => ({ live: null, hideText: false, black: false, ...(s.rehearsal ? {} : { ticker: { ...s.ticker, current: null, queue: [] } }) })),
   toggleHideText: () => set((s) => ({ hideText: !s.hideText })),
   toggleBlack: () => set((s) => ({ black: !s.black })),
   setAspect: (aspect) => set({ aspect }),
@@ -678,6 +718,7 @@ export const useApp = create<AppState>()((set, get) => ({
               title: saved.title,
               key: saved.key,
               languageMode: saved.languageMode && saved.languageMode !== 'both' ? saved.languageMode : undefined,
+              ...songTempo(saved),
               templateId: it.templateId === before?.templateId ? saved.templateId : it.templateId
             }
           : it
@@ -935,6 +976,20 @@ export const useApp = create<AppState>()((set, get) => ({
 
   deleteCaptionPreset: (index) => set((s) => ({ captionPresets: s.captionPresets.filter((_, i) => i !== index) })),
 
+  setTickerOptions: (patch) => set((s) => ({ ticker: { ...s.ticker, ...patch } })),
+  sendTicker: (text) => {
+    if (!text.trim()) return
+    set((s) => ({ ticker: { ...s.ticker, queue: [...s.ticker.queue, queueTicker(text, s.ticker)] } }))
+  },
+  stopTicker: () => set((s) => (s.ticker.current ? { ticker: { ...s.ticker, current: null } } : {})),
+  clearTickerQueue: () => set((s) => ({ ticker: { ...s.ticker, queue: [] } })),
+  saveTickerPreset: (text) =>
+    set((s) => {
+      const tx = text.trim()
+      return tx ? { tickerPresets: [tx, ...s.tickerPresets.filter((p) => p !== tx)] } : {}
+    }),
+  deleteTickerPreset: (index) => set((s) => ({ tickerPresets: s.tickerPresets.filter((_, i) => i !== index) })),
+
   recordScripture: (p) => set((s) => ({ scriptureHistory: addToHistory(s.scriptureHistory, p) })),
 
   togglePin: (p) =>
@@ -988,7 +1043,7 @@ export const useApp = create<AppState>()((set, get) => ({
       return {
         ...rest,
         id: uid(),
-        ...(song ? { title: song.title, key: song.key, languageMode: song.languageMode && song.languageMode !== 'both' ? song.languageMode : undefined } : {}),
+        ...(song ? { title: song.title, key: song.key, languageMode: song.languageMode && song.languageMode !== 'both' ? song.languageMode : undefined, ...songTempo(song) } : {}),
         slides: song ? song.slides.map((sl) => ({ ...sl })) : it.slides.map((sl) => ({ ...sl, id: uid() }))
       }
     }).map((it) => {
@@ -1044,6 +1099,11 @@ export const useApp = create<AppState>()((set, get) => ({
         const pin = s.scripturePins.find((p) => p.id === cmd.id)
         if (pin) void s.showPassage(pin)
         return
+      }
+      case 'transpose': {
+        const it = s.service.items.find((x) => x.id === cmd.itemId)
+        if (it?.kind !== 'song' || !Number.isInteger(cmd.by) || Math.abs(cmd.by) > 11) return
+        return s.setItemTranspose(it.id, cmd.by === 0 ? 0 : (it.transpose ?? 0) + cmd.by)
       }
     }
   }
@@ -1133,6 +1193,7 @@ let autosaveStarted = false
 let savedCountdownKey = ''
 let savedStageKey = ''
 let savedCaptionKey = ''
+let savedTickerKey = ''
 function startAutosave(): void {
   if (autosaveStarted) return
   autosaveStarted = true
@@ -1199,6 +1260,14 @@ function startAutosave(): void {
       }
     }
     if (s.captionPresets !== prev.captionPresets) window.nl.data.setSetting('captionPresets', s.captionPresets)
+    if (s.tickerPresets !== prev.tickerPresets) window.nl.data.setSetting('tickerPresets', s.tickerPresets)
+    if (s.ticker !== prev.ticker) {
+      const key = JSON.stringify(restoreTickerOptions(s.ticker))
+      if (key !== savedTickerKey) {
+        savedTickerKey = key
+        window.nl.data.setSetting('tickerOptions', JSON.parse(key))
+      }
+    }
     if (s.scriptureHistory !== prev.scriptureHistory) window.nl.data.setSetting('scriptureHistory', s.scriptureHistory)
     if (s.scripturePins !== prev.scripturePins) window.nl.data.setSetting('scripturePins', s.scripturePins)
   })
@@ -1239,6 +1308,21 @@ function startTimers(): void {
   })
 }
 
+// ---------- beat clock ----------
+// Beat 1 falls when a song goes live (a new live item, or the same song after a tempo change); "Beat 1 now" moves it.
+let beatClockStarted = false
+function startBeatClock(): void {
+  if (beatClockStarted) return
+  beatClockStarted = true
+  useApp.subscribe((s, prev) => {
+    const a = s.live ? findItem(s, s.live.itemId) : undefined
+    const b = prev.live ? findItem(prev, prev.live.itemId) : undefined
+    if (a?.id === b?.id && a?.bpm === b?.bpm && a?.timeSignature === b?.timeSignature) return
+    const beatStartedAt = a?.bpm ? Date.now() : null
+    if (beatStartedAt !== s.beatStartedAt) useApp.setState({ beatStartedAt })
+  })
+}
+
 // ---------- countdown: go live at 0:00 ----------
 // Optional: when a running countdown reaches zero, the first real item (no sections, no blanks) goes live and the
 // countdown goes away (this wins over "keep counting past 0:00"). Never during rehearsal.
@@ -1270,6 +1354,47 @@ function startCountdownAutoLive(): void {
   }
   useApp.subscribe(schedule)
   schedule(useApp.getState())
+}
+
+// ---------- announcements ----------
+// One message plays at a time; the next queued one starts a moment after it ends. During rehearsal the queue waits
+// (the screens keep what they showed), and starts when rehearsal ends.
+let tickerStarted = false
+function startTickerQueue(): void {
+  if (tickerStarted) return
+  tickerStarted = true
+  let endTimer: ReturnType<typeof setTimeout> | undefined
+  let startTimer: ReturnType<typeof setTimeout> | undefined
+  let key = ''
+  const run = (s: AppState): void => {
+    const cur = s.ticker.current
+    const k = cur ? `${cur.id}:${cur.endsAt}` : ''
+    if (k !== key) {
+      key = k
+      clearTimeout(endTimer)
+      if (cur)
+        endTimer = setTimeout(() => {
+          const tk = useApp.getState().ticker
+          if (tk.current?.id === cur.id) useApp.setState({ ticker: { ...tk, current: null } })
+        }, Math.max(0, cur.endsAt - Date.now()))
+    }
+    if (cur || !s.ticker.queue.length || s.rehearsal) {
+      clearTimeout(startTimer)
+      startTimer = undefined
+      return
+    }
+    if (startTimer) return
+    // Outside this listener, so every subscriber sees the states in order.
+    startTimer = setTimeout(() => {
+      startTimer = undefined
+      const now = useApp.getState()
+      const [q, ...rest] = now.ticker.queue
+      if (now.ticker.current || !q || now.rehearsal) return
+      useApp.setState({ ticker: { ...now.ticker, current: startTicker(q, now.aspect), queue: rest } })
+    }, 400)
+  }
+  useApp.subscribe(run)
+  run(useApp.getState())
 }
 
 let usageStarted = false
@@ -1421,7 +1546,8 @@ export function buildFrame(s: S): LiveFrame {
           : s.countdown
         : null,
     logo: s.logo,
-    caption: s.caption.target === 'both' ? captionOf(s) : null
+    caption: s.caption.target === 'both' ? captionOf(s) : null,
+    ticker: s.ticker.current
   }
 }
 
@@ -1470,8 +1596,19 @@ export function buildStage(s: S): StageFrame {
     layout: s.stage.layout,
     scale: s.stage.scale,
     showTitles: s.stage.showTitles,
-    mirror: s.stage.mirror
+    mirror: s.stage.mirror,
+    tempo: liveTempo(s),
+    beatPulse: s.stage.beatPulse
   }
+}
+
+/** The live song's tempo and beat clock (stage screens, metronome), or null when it has no BPM. */
+export function liveTempo(s: Pick<S, 'live' | 'scratch' | 'service' | 'beatStartedAt'>): StageTempo | null {
+  const item = s.live ? findItem(s as S, s.live.itemId) : undefined
+  const bpm = item?.kind === 'song' ? item.bpm : undefined
+  if (!bpm || s.beatStartedAt === null) return null
+  const time = item?.timeSignature
+  return { bpm, ...(time ? { time } : {}), beatsPerBar: beatsPerBar(time), startedAt: s.beatStartedAt }
 }
 
 /** The caption while it is showing. */
@@ -1549,7 +1686,8 @@ export function buildSnapshot(s: S): Snapshot {
       countdown: s.overlay.showCountdown ? frame.countdown : null, // follows the audience screen
       settings: s.overlay,
       transition: s.transition,
-      caption: captionOf(s)
+      caption: captionOf(s),
+      ticker: s.ticker.current?.overlay && !s.black ? s.ticker.current : null
     },
     serviceName: s.service.name,
     items: s.service.items.map((it) => ({
@@ -1557,6 +1695,7 @@ export function buildSnapshot(s: S): Snapshot {
       kind: it.kind,
       title: it.title,
       ...(it.color ? { color: it.color } : {}),
+      ...(it.kind === 'song' && it.slides.some((sl) => hasChords(sl.text)) ? { chords: { key: it.key, transpose: it.transpose ?? 0, bpm: it.bpm, time: it.timeSignature } } : {}),
       slides: it.slides.map((sl) => ({
         label: sl.label,
         ...(labelColor(sl.label, s.labelColors) ? { labelColor: labelColor(sl.label, s.labelColors) } : {}),

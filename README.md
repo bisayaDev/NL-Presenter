@@ -228,6 +228,9 @@ the screens show. The app keeps song and service edits you make while rehearsing
   - A chord palette with the key's chords (ABC or 123). It inserts at the cursor, and typing `[` highlights it.
   - Pasting a chord sheet (chords on the line above the words) converts it to inline chords. A `Key: B` line sets the key.
   - `.txt` import and export read and write `Key:` too.
+  - **Tempo:** BPM (30–300, with *Tap* to tap it in) and time signature (4/4, 3/4, 6/8, 2/4, 12/8) next to the key
+    (`Song.bpm` / `Song.timeSignature`, columns `bpm` / `time_signature`; copied to service items like the key). Used
+    by the stage beat pulse and the metronome (see Stage display).
 - **Live transpose:** Presentation tab → the guitar control on a song with chords. It applies to this service only and
   changes the stage chords; the library song is untouched.
 - **Where chords show:** stage screens only. Stage & OBS tab → *Chords*: Off / Standard / Nashville. Each wireless stage
@@ -284,9 +287,9 @@ top bar; the operator can reply. History lasts for the current sharing session.
   (warning shown). Quit waits for it (max 2 min). Sunday check warns when the last one is over 7 days old.
   Code: `src/main/autoBackup.ts`; settings `autoBackup*` (restore leaves them alone).
 - **Songs tab → Import / Export.** Export writes the songs in the current list (search and tag filters apply), one
-  `.txt` each. Format: optional `Title:`, `Author:`, `Tags:`, `Key:`, `Copyright:`, `CCLI:` lines, a blank line, then
+  `.txt` each. Format: optional `Title:`, `Author:`, `Tags:`, `Key:`, `Copyright:`, `CCLI:`, `Tempo:` (or `BPM:`), `Time:` lines, a blank line, then
   lyrics with `[Section]` headings. Import also reads ChordPro (`.cho`, `.chordpro`, `.chopro`, `.crd`, `.pro`, with
-  chords) and SongSelect downloads (lyrics `.txt`, `.usr`). Code: `src/renderer/src/lib/songImport.ts`.
+  chords, `{tempo: 72}`, `{time: 3/4}`) and SongSelect downloads (lyrics `.txt`, `.usr`). Code: `src/renderer/src/lib/songImport.ts`.
 - **Songs tab → Find a song** (also offered when a search finds nothing): searches [LRCLIB](https://lrclib.net), a free
   lyrics database (no key; lyrics only, no chords), from the main process (`src/main/songSearch.ts`, results ranked by
   title match, remixes/covers pushed down). The lyrics are typed out from recordings, so `tidyWebLyrics` guesses the
@@ -329,6 +332,17 @@ left with an accent bar, above the lyrics band. Save presets (click to show, tra
 show on the overlay only or on the audience screen too. Data: `OverlayFrame.caption` / `LiveFrame.caption`; settings
 `caption`, `captionPresets`. Code: `components/CaptionPanel.tsx`, `components/CaptionLayer.tsx`.
 
+**Announcements** (same tab): short messages over the audience screen without leaving the song ("Parent of child #12,
+please come to the nursery"). *Scroll*: a band along the bottom, text moves right to left 1/2/3 (default)/5 times, then
+goes away. *Band*: still text for 10/15/30/60 s. Reduced-motion systems get the still band. Shown on the audience
+screen, wireless screens and the live preview; *Also on OBS overlay* optional; never on stage screens. Messages sent
+while one plays wait in a queue (*Stop* ends the current one, *Clear queue*). Saved messages: click to send, trash to
+delete. Black covers it (the overlay drops it too); Clear (Esc) ends it and empties the queue. During rehearsal the
+screens keep what they had and new messages wait until it ends. The caption and copyright line move up while it plays.
+Timing is absolute (`startedAt`/`endsAt`/`passMs`, epoch ms), so late-joining and wireless screens show the same moment.
+Data: `LiveFrame.ticker` / `OverlayFrame.ticker` (`TickerMessage`); settings `tickerOptions`, `tickerPresets`. Code:
+`lib/ticker.ts`, `components/TickerPanel.tsx`, `components/TickerLayer.tsx`, `startTickerQueue()` in the store.
+
 ## Countdown
 
 Countdown tab: duration, until a time of day, or a live clock; optional overtime (counts up in red); show on audience,
@@ -343,7 +357,10 @@ the first item* (off by default): the first item that isn't a section or blank g
 
 Stage tab: messages to performers (free text or quick messages), next slide and clock toggles, and a live preview.
 - **Wired:** opens fullscreen on a chosen monitor. If no free external monitor exists it opens as a window rather
-  than covering the audience screen.
+  than covering the audience screen. **Top bar → Stage** (next to Open Output) does the same without visiting the Stage
+  tab: click opens it on a free display ("Stage: <display>", click again to close; "Stage lost" when its display is
+  unplugged); ▾ picks a display (the output's one is marked) or shows the wireless stage link and QR with the tablet
+  count (`StageButton` in `components/TopBar.tsx`).
 - **Wireless:** any phone or tablet browser on the same network: `http://<computer-ip>:4777/#/stage` (QR in the
   Stage tab). Read-only, no PIN. Adapts to portrait and landscape and keeps the screen awake.
 - **Layouts:** Standard, Lyrics only (large, no chords, no next slide; for singers), Chords focus (big chords and a
@@ -357,6 +374,19 @@ Stage tab: messages to performers (free text or quick messages), next slide and 
 - **Item time left** (toggle, on by default): when the live item has planned minutes, "12:34 left", amber in the last
   2 minutes, red "+0:42" when over (`StageFrame.itemStartedAt` / `itemMinutes`).
 - **Messages:** a new message flashes 3 times, or keeps flashing with *Flash until cleared*; left/center/right alignment.
+- **Tempo and beat pulse:** a live song with a BPM shows "72 BPM · 4/4" in the stage top bar. Stage tab → *Beat pulse*
+  (setting `stage.beatPulse`: `off` (default) / `dot` / `edge`): one pip per beat in the top bar, beat 1 amber; `edge`
+  adds a thin flashing frame round the screen for drummers. Reduced-motion systems get a steady beat number and no
+  frame. Never on the audience screen or overlay. Beats are counted from `StageFrame.tempo` `{ bpm, time, beatsPerBar,
+  startedAt }` (`liveTempo()` in the store; `startedAt` = store `beatStartedAt`, set when a song with a BPM goes live
+  or its tempo changes), so every screen pulses in step (wireless screens add the server clock offset) and draws with
+  requestAnimationFrame. *Beat 1 now* (`restartBeat`) re-syncs all screens and the click. 6/8, 9/8, 12/8 count
+  dotted-quarter beats (2/3/4 a bar). Code: `src/shared/tempo.ts`, `components/StageBeat.tsx`.
+- **Metronome** (live panel; metronome icon in its header, opens by itself while a song with a BPM is live): *Click*
+  plays through this computer's sound output only, at the live song's tempo (*Song*) or a typed BPM; *Beat 1*, volume,
+  *Accent 1* (higher click on beat 1). Web Audio with lookahead scheduling on the same beat clock as the stage pulse,
+  booked early by the output latency. Remembered per computer (`nl-metronome` in localStorage). Code: `lib/metronome.ts`,
+  `components/MetronomeControl.tsx`.
 
 ## Phone remote
 
@@ -364,14 +394,31 @@ Top bar → **Remote** → *Start network sharing*. Scan the QR or open `http://
 the 4-digit PIN (new PIN every session; 8 wrong tries locks that address out for a minute). Views: service flow,
 slides of the live item, Bible search (shows verses live), chat. Controls: previous, hide text, black, next.
 
+**Transpose from the phone:** on a song with chords, the Slides view shows the key it's played in (and the written key
+when moved) with − / + (one semitone) and ↺ (back to the written key). Same live transpose as the operator's guitar
+control: this service only, stage chords change, the library song doesn't. Command `{ type: 'transpose', itemId, by }`
+(`by` ±1…11, 0 resets); `ItemSummary.chords` `{ key, transpose }` is sent only for songs with chords. It still works
+while rehearsing (other phone commands pause), so a band can try a new key in practice.
+
 The operator window publishes one `Snapshot` (src/shared/types.ts) on every change. The main
 process relays it to the projector and stage windows over IPC and to browsers over WebSocket (src/main/server.ts).
 Phone commands travel back the same way and run in the operator window.
 
 **Control API** (Stream Deck, Bitfocus Companion, clickers): Remote panel → *Allow control API* (setting `controlApi`;
 off by default). `POST /api/next|prev|black|hideText|clear?pin=1234`, `POST /api/goto?pin=1234&item=3&slide=2`
-(items numbered from 1 without section headers, or an item id; PIN also as `X-PIN` header), `GET /api/status` (JSON,
-no PIN). Same PIN lockout as phones. While on, the PIN stays the same between sessions (`controlApiPin`).
+(items numbered from 1 without section headers, or an item id; PIN also as `X-PIN` header),
+`POST /api/transpose?pin=1234&by=1` (live song by semitones, `by=0` back to the written key; `&item=` as goto),
+`GET /api/status` (JSON, no PIN). Same PIN lockout as phones. While on, the PIN stays the same between sessions (`controlApiPin`).
+
+## Update notice
+
+The app asks GitHub for the latest published release (`api.github.com/repos/bisayaDev/NL-Presenter/releases/latest`)
+20 s after start-up and every 6 hours. When it's newer than this version, a green **Update** pill appears in the top
+bar: the version, the start of the release notes, *Download* (opens the release page), *Later* (until next start) and
+*Skip this version* (setting `updateSkip`). Nothing is downloaded or installed by itself: the Mac builds aren't signed,
+so they can't replace themselves. Settings → About: *Tell me when a new version is out* (setting `updateCheck`, on by
+default) and *Check now*. Drafts and pre-releases are ignored. Code: `src/main/updates.ts`; snapshot runs don't check,
+and `NL_UPDATE_TEST=9.9.9` fakes a release for testing.
 
 ## Shortcuts
 

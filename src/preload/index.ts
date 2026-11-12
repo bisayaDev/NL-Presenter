@@ -9,6 +9,8 @@ import type {
   BibleInfo,
   BibleInstallProgress,
   Bootstrap,
+  UpdateInfo,
+  UpdateStatus,
   ChatMessage,
   DeckLoadResult,
   DeckSaveInput,
@@ -156,6 +158,14 @@ const api = {
   },
   appInfo: (): Promise<{ version: string; dataDir: string; platform: string; bibles: BibleInfo[] }> =>
     ipcRenderer.invoke(IPC.appInfo),
+  /** Update notice: GitHub's latest release vs this version (nothing is downloaded or installed). */
+  updates: {
+    status: (): Promise<UpdateStatus> => ipcRenderer.invoke(IPC.updateStatus),
+    check: (): Promise<UpdateStatus> => ipcRenderer.invoke(IPC.updateCheck),
+    /** Opens the release page in the browser. */
+    open: (): Promise<void> => ipcRenderer.invoke(IPC.updateOpen),
+    onAvailable: (cb: (info: UpdateInfo) => void) => subscribe(IPC.updateAvailable, cb)
+  },
   /** Operator window interface size (zoom factor, saved). */
   uiZoom: {
     get: (): Promise<number> => ipcRenderer.invoke(IPC.uiZoomGet),

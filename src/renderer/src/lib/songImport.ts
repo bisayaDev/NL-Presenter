@@ -6,6 +6,7 @@
 
 import type { Song, SongText } from '@shared/types'
 import { guessKey, keyName, parseKey } from '@shared/chords'
+import { normalizeBpm, normalizeTimeSignature } from '@shared/tempo'
 import { lyricsToSlides, uid } from './defaults'
 import { textToSong } from './songText'
 
@@ -15,6 +16,8 @@ export interface SongDraft {
   copyright?: string
   ccli?: string
   key?: string
+  bpm?: number
+  timeSignature?: string
   /** Our lyrics format: blocks separated by blank lines, "[Chorus]" headings, inline chords. */
   lyrics: string
 }
@@ -65,6 +68,8 @@ export function draftToSong(d: SongDraft): Song | null {
     key: k ? keyName(k) : guessKey(d.lyrics),
     copyright: d.copyright?.trim() || undefined,
     ccli: d.ccli?.trim() || undefined,
+    bpm: normalizeBpm(d.bpm),
+    timeSignature: normalizeTimeSignature(d.timeSignature),
     updatedAt: Date.now()
   }
 }
@@ -277,6 +282,13 @@ export function chordProToDraft(text: string, name = ''): SongDraft {
           break
         case 'copyright':
           d.copyright = val
+          break
+        case 'tempo':
+          // "{tempo: 72}"; also "72 bpm"
+          d.bpm = normalizeBpm(val.replace(/\s*bpm\s*$/i, '')) ?? d.bpm
+          break
+        case 'time':
+          d.timeSignature = normalizeTimeSignature(val) ?? d.timeSignature
           break
         case 'ccli':
         case 'ccli_number':

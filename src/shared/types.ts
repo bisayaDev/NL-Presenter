@@ -1,6 +1,7 @@
 // Types shared by the main process, preload and every renderer window.
 import type { LoopDefinition } from './loops'
 import type { ChordNotation } from './chords'
+import type { StageTempo } from './tempo'
 
 export type AspectRatio = '16:9' | '4:3'
 
@@ -162,6 +163,9 @@ export interface ServiceItem {
   arrangement?: string[]
   /** Arrangement labels the library song no longer has (dropped; shown as a warning on the Arrange button). */
   arrangementMissing?: string[]
+  /** Songs: tempo copied from the library song (see Song.bpm / Song.timeSignature). */
+  bpm?: number
+  timeSignature?: string
 }
 
 export interface Song {
@@ -176,6 +180,9 @@ export interface Song {
   ccli?: string // CCLI song number
   /** Bilingual songs: which language(s) the audience sees. Default both. */
   languageMode?: LanguageMode
+  /** Tempo for the band (stage beat pulse, metronome): 30–300, and a time signature such as "4/4" or "6/8". */
+  bpm?: number
+  timeSignature?: string
   updatedAt: number
 }
 
@@ -273,6 +280,23 @@ export interface VerseHit {
   label: string // "John 3:16"
 }
 
+/** A newer published release (from GitHub). */
+export interface UpdateInfo {
+  version: string // "0.3.0"
+  url: string // release page
+  notes: string // release notes (Markdown), shortened
+  publishedAt: string
+}
+
+export interface UpdateStatus {
+  current: string
+  available: UpdateInfo | null // only when newer than `current`
+  checkedAt: number | null
+  error: string | null // last check failed (offline…)
+  auto: boolean // setting `updateCheck`: check by itself after start-up and every 6 hours
+  skipped: string | null // setting `updateSkip`: "Skip this version"
+}
+
 export interface Bootstrap {
   songs: Song[]
   service: Service | null
@@ -324,6 +348,22 @@ export interface LiveFrame {
   video?: VideoPlayback
   /** Song copyright line, small in the lower left ("© … · CCLI Song #… · CCLI Licence #…"). */
   footer?: string | null
+  /** Announcement along the bottom (scrolling ticker or static band) while one is playing. */
+  ticker?: TickerMessage | null
+}
+
+/** Audience announcement ("Parent of child #12, please come to the nursery"). Times are epoch ms, so every screen agrees. */
+export interface TickerMessage {
+  id: string
+  text: string
+  kind: 'scroll' | 'band'
+  /** Scroll: one crossing of the screen (ms); `repeat` crossings fit between startedAt and endsAt. */
+  passMs: number
+  repeat: number
+  startedAt: number
+  endsAt: number
+  /** Also on the OBS overlay. */
+  overlay: boolean
 }
 
 export type TransitionKind = 'cut' | 'fade' | 'rise' | 'zoom'
@@ -382,7 +422,13 @@ export interface StageFrame {
   messageAlign?: 'left' | 'center' | 'right'
   /** The logo, small in a stage corner (when "Also show on stage screens" is on). */
   logo?: Logo | null
+  /** The live song's tempo and beat clock (see shared/tempo.ts), or null when it has none. */
+  tempo?: StageTempo | null
+  /** Beat pulse in the stage header ('dot'), plus a thin flashing frame for drummers ('edge'). */
+  beatPulse?: BeatPulse
 }
+
+export type BeatPulse = 'off' | 'dot' | 'edge'
 
 export type StageChords = 'off' | ChordNotation
 
@@ -404,6 +450,8 @@ export interface OverlayFrame {
   transition?: Transition
   /** Song copyright line, only when the copyright settings ask for it on the overlay. */
   footer?: string | null
+  /** Audience announcement, when the operator also sends it to the overlay. */
+  ticker?: TickerMessage | null
 }
 
 /** A Scripture passage in the Bible tab's Recent list or pins. Verses are fetched again when shown. */
@@ -423,6 +471,8 @@ export interface ItemSummary {
   kind: ItemKind
   title: string
   color?: string // sections
+  /** Songs with chords only, so the phone remote can transpose: written key and the live transpose (semitones). */
+  chords?: { key?: string; transpose: number; bpm?: number; time?: string }
   slides: { label?: string; labelColor?: string; text: string; reference?: string; image?: string; video?: string }[] // image: presentation page / picture ref; video: video ref
 }
 
@@ -453,6 +503,7 @@ export type RemoteCommand =
   | { type: 'clear' }
   | { type: 'scripture'; title: string; slides: Slide[]; index?: number }
   | { type: 'pin'; id: string } // show a pinned passage live
+  | { type: 'transpose'; itemId: string; by: number } // live transpose a song by ±semitones; by 0 = back to the written key
 
 export interface NetStatus {
   running: boolean

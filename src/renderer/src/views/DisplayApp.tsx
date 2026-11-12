@@ -62,6 +62,7 @@ export default function DisplayApp() {
         motion={f?.transition}
         video={f?.video}
         footer={f?.footer}
+        ticker={f?.ticker}
         clockOffset={conn.offset}
         audio
         liveSources

@@ -7,6 +7,8 @@ import { mediaUrl } from '@/lib/media'
 import { videoPosition } from '@/lib/video'
 import LoopView from './LoopView'
 import CaptionLayer from './CaptionLayer'
+import TickerLayer from './TickerLayer'
+import { TICKER_HEIGHT, useTickerActive } from '@/lib/ticker'
 import { stripChords } from '@shared/chords'
 import { splitLanguages } from '@shared/bilingual'
 import { parallelOf } from '@shared/bible'
@@ -47,6 +49,8 @@ interface Props {
   video?: VideoPlayback
   /** Song copyright line, small in the lower left (audience screens only; thumbnails never show it). */
   footer?: string | null
+  /** Announcement band along the bottom (audience and wireless screens; never stage or thumbnails). */
+  ticker?: import('@shared/types').TickerMessage | null
   className?: string
 }
 
@@ -67,6 +71,7 @@ export default function SlideView({
   motion,
   video,
   footer,
+  ticker,
   className
 }: Props) {
   const outer = useRef<HTMLDivElement>(null)
@@ -74,6 +79,8 @@ export default function SlideView({
   const { w, h } = STAGE[aspect]
   // Thumbnails and previews (no `motion`) cut instantly.
   const anim: Transition | null = !thumbnail && motion && motion.kind !== 'cut' && motion.ms > 0 ? motion : null
+  // While an announcement plays, the caption and copyright line move up above its band.
+  const tickerOn = useTickerActive(thumbnail ? null : ticker, clockOffset ?? 0)
 
   useLayoutEffect(() => {
     const el = outer.current
@@ -111,13 +118,13 @@ export default function SlideView({
           h={h}
         />
         {logo && <LogoLayer logo={logo} w={w} />}
-        {caption !== undefined && !thumbnail && <CaptionLayer caption={caption} w={w} h={h} />}
+        {caption !== undefined && !thumbnail && <CaptionLayer caption={caption} w={w} h={h} lift={tickerOn ? TICKER_HEIGHT : 0} />}
         {footer && !thumbnail && !countdown && (
           <div
             className="pointer-events-none absolute"
             style={{
               left: MARGIN,
-              bottom: 30,
+              bottom: 30 + (tickerOn ? (TICKER_HEIGHT * h) / 100 : 0),
               maxWidth: w * 0.62,
               fontFamily: style.fontFamily,
               fontSize: 22,
@@ -125,12 +132,13 @@ export default function SlideView({
               color: 'rgba(255,255,255,.78)',
               textShadow: '0 1px 4px rgba(0,0,0,.85)',
               opacity: hideText ? 0 : 1,
-              transition: 'opacity 350ms ease'
+              transition: 'opacity 350ms ease, bottom 300ms ease'
             }}
           >
             {footer}
           </div>
         )}
+        {ticker && !thumbnail && <TickerLayer ticker={ticker} h={h} offset={clockOffset ?? 0} />}
         <div
           className="absolute inset-0 bg-black"
           style={{ opacity: black ? 1 : 0, transition: thumbnail ? undefined : 'opacity 300ms ease' }}

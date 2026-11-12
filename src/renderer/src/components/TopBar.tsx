@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Drama, Monitor, MonitorOff, Music, Settings, Smartphone, Wifi } from 'lucide-react'
-import type { DisplayInfo, ScreensStatus } from '@shared/types'
+import { ArrowUpCircle, ChevronDown, Drama, Guitar, Monitor, MonitorOff, Music, Settings, Smartphone, Wifi } from 'lucide-react'
+import type { DisplayInfo, ScreensStatus, UpdateInfo } from '@shared/types'
 import NetworkPanel, { useNetStatus } from './NetworkPanel'
 import SettingsDialog from './SettingsDialog'
 import ChatButton from './ChatButton'
@@ -71,6 +71,7 @@ export default function TopBar() {
 
       <div className="flex-1" />
 
+      <UpdateButton />
       <RehearseButton />
 
       <div className="no-drag flex items-center rounded-md bg-panel-2 p-0.5 text-[12px]">
@@ -103,7 +104,7 @@ export default function TopBar() {
           >
             <Monitor size={15} />
             <span className="whitespace-nowrap">{screens?.audience.lost ? t('topbar.outputLost') : t('topbar.openOutput')}</span>
-            {(screens?.audience.lost || screens?.stage.lost) && (
+            {screens?.audience.lost && (
               <span className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full bg-live ring-2 ring-panel" />
             )}
           </button>
@@ -165,6 +166,8 @@ export default function TopBar() {
         )}
       </div>
 
+      <StageButton screens={screens} displays={displays} onScreens={setScreens} />
+
       <MusicButton />
       <ChatButton />
       <RemoteButton />
@@ -180,6 +183,200 @@ export default function TopBar() {
       {/* Outside the header: its drag area is inherited and would turn every click in the dialog into a window drag. */}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
     </>
+  )
+}
+
+/**
+ * Stage screen (performer monitor) without going to the Stage tab: click opens it on a free external monitor
+ * (else as a window, never over the audience screen); ▾ picks a display or shows the wireless stage link.
+ */
+function StageButton({
+  screens,
+  displays,
+  onScreens
+}: {
+  screens: ScreensStatus | null
+  displays: DisplayInfo[]
+  onScreens: (s: ScreensStatus) => void
+}) {
+  const [menu, setMenu] = useState(false)
+  const [wireless, setWireless] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const net = useNetStatus()
+  const { t } = useT()
+  useModal(menu, () => setMenu(false))
+
+  useEffect(() => {
+    if (!menu) return
+    const close = (e: MouseEvent): void => {
+      if (!ref.current?.contains(e.target as Node)) setMenu(false)
+    }
+    window.addEventListener('mousedown', close)
+    return () => window.removeEventListener('mousedown', close)
+  }, [menu])
+
+  const stage = screens?.stage ?? { open: false, displayId: null, lost: false }
+  const current = displays.find((d) => d.id === stage.displayId)
+  const tablets = net?.clients.stage ?? 0
+  const open = async (id: number | null): Promise<void> => {
+    setMenu(false)
+    onScreens(await window.nl.screens.open('stage', id))
+  }
+
+  return (
+    <div ref={ref} className="no-drag relative flex">
+      {stage.open ? (
+        <button
+          onClick={() => window.nl.screens.close('stage')}
+          className="flex min-w-0 items-center gap-2 rounded-l-md border border-r-0 border-accent/40 bg-accent-soft px-3 py-1.5 text-[13px] font-medium text-accent-text hover:bg-accent/25"
+          title={t('topbar.closeStage')}
+        >
+          <MonitorOff size={15} className="shrink-0" />
+          <span className="max-w-40 truncate whitespace-nowrap">{t('topbar.stageOn', { name: current?.label ?? t('topbar.window') })}</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => open(null)}
+          className="relative flex items-center gap-2 rounded-l-md bg-panel-2 px-3 py-1.5 text-[13px] font-medium text-fg hover:bg-panel-3"
+          title={stage.lost ? t('topbar.stageLostHint') : t('topbar.stageHint')}
+        >
+          <Guitar size={15} className="shrink-0 text-muted" />
+          <span className="whitespace-nowrap">{stage.lost ? t('topbar.stageLost') : t('topbar.stage')}</span>
+          {stage.lost && <span className="absolute -right-1 -top-1 h-2.5 w-2.5 animate-pulse rounded-full bg-live ring-2 ring-panel" />}
+        </button>
+      )}
+      <button
+        onClick={() => setMenu((m) => !m)}
+        className={`relative rounded-r-md border-l px-1.5 ${
+          stage.open
+            ? 'border border-accent/40 bg-accent-soft text-accent-text hover:bg-accent/25'
+            : 'border-line bg-panel-2 text-muted hover:bg-panel-3 hover:text-fg'
+        }`}
+        title={t('topbar.chooseStageDisplay')}
+      >
+        <ChevronDown size={15} />
+        {tablets > 0 && (
+          <span className="absolute -right-1.5 -top-1.5 rounded-full bg-emerald-500 px-1 text-[9.5px] font-bold text-white">{tablets}</span>
+        )}
+      </button>
+      {menu && (
+        <div className={`absolute right-0 top-full z-50 mt-1.5 overflow-hidden rounded-lg border border-line bg-panel-2 py-1 shadow-2xl ${wireless ? 'w-[420px]' : 'w-72'}`}>
+          <div className="label-caps px-3 py-1.5">{t('topbar.sendStageTo')}</div>
+          {displays.map((d) => (
+            <button
+              key={d.id}
+              disabled={stage.open}
+              onClick={() => open(d.id)}
+              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] hover:bg-panel-3 disabled:opacity-50 disabled:hover:bg-transparent"
+            >
+              <span className="min-w-0 truncate">
+                {d.label}
+                {d.id === stage.displayId ? ' ✓' : ''}
+              </span>
+              <span className="shrink-0 text-[11px] text-muted">
+                {d.width}×{d.height}
+                {d.id === screens?.audience.displayId ? ` · ${t('topbar.usedByOutput')}` : d.primary ? ` · ${t('topbar.mainDisplay')}` : ''}
+              </span>
+            </button>
+          ))}
+          {displays.length < 2 && (
+            <p className="border-t border-line px-3 py-2 text-[11.5px] leading-snug text-muted">{t('topbar.stageOneDisplay')}</p>
+          )}
+          <div className="mt-1 border-t border-line">
+            <button
+              onClick={() => setWireless((w) => !w)}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] hover:bg-panel-3"
+            >
+              <Wifi size={14} className="text-accent-text" />
+              <span className="flex-1">{t('topbar.wirelessStage')}</span>
+              <span className="text-[11px] text-muted">{t('topbar.connected', { n: tablets })}</span>
+            </button>
+            {wireless && <NetworkPanel target="stage" />}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** "Update available" notice: shown when GitHub has a newer release (checked by the main process). */
+function UpdateButton() {
+  const [info, setInfo] = useState<UpdateInfo | null>(null)
+  const [current, setCurrent] = useState('')
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const { t } = useT()
+  useModal(open, () => setOpen(false))
+
+  useEffect(() => {
+    // A check may have finished before this window subscribed: ask for the status too.
+    window.nl.updates.status().then((st) => {
+      setCurrent(st.current)
+      if (st.available && st.available.version !== st.skipped) setInfo(st.available)
+    })
+    return window.nl.updates.onAvailable(setInfo)
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent): void => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    window.addEventListener('mousedown', close)
+    return () => window.removeEventListener('mousedown', close)
+  }, [open])
+
+  if (!info) return null
+  const dismiss = (): void => {
+    setOpen(false)
+    setInfo(null)
+  }
+  return (
+    <div ref={ref} className="no-drag relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[12px] font-semibold text-emerald-400 hover:bg-emerald-500/25"
+        title={t('topbar.update.hint', { version: info.version })}
+      >
+        <ArrowUpCircle size={14} className="shrink-0" />
+        <span className="whitespace-nowrap">{t('topbar.update.badge')}</span>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1.5 w-80 rounded-lg border border-line bg-panel-2 p-3 shadow-2xl">
+          <div className="text-[13.5px] font-semibold">{t('topbar.update.title', { version: info.version })}</div>
+          <div className="mt-0.5 text-[12px] text-muted">{t('topbar.update.current', { version: current })}</div>
+          {info.notes && (
+            <p className="mt-2 line-clamp-6 whitespace-pre-line text-[12px] leading-snug text-muted">
+              {info.notes.replace(/[#*`|>]/g, '').replace(/\n{3,}/g, '\n\n').trim()}
+            </p>
+          )}
+          <p className="mt-2 text-[11.5px] leading-snug text-dim">{t('topbar.update.how')}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                void window.nl.updates.open()
+                setOpen(false)
+              }}
+              className="rounded-md bg-accent-fill px-3 py-1.5 text-[12.5px] font-semibold text-on-accent hover:brightness-110"
+            >
+              {t('topbar.update.download')}
+            </button>
+            <button onClick={dismiss} className="rounded-md px-2 py-1.5 text-[12.5px] text-muted hover:bg-panel-3 hover:text-fg">
+              {t('topbar.update.later')}
+            </button>
+            <button
+              onClick={() => {
+                void window.nl.data.setSetting('updateSkip', info.version)
+                dismiss()
+              }}
+              className="ml-auto rounded-md px-2 py-1.5 text-[12px] text-dim hover:bg-panel-3 hover:text-fg"
+            >
+              {t('topbar.update.skip')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

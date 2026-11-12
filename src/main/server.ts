@@ -155,6 +155,7 @@ function apiStatus(): unknown {
  *   GET  /api/status                          live item and slide, black, hide text (no PIN: read-only, like stage)
  *   POST /api/<next|prev|black|hideText|clear>?pin=1234
  *   POST /api/goto?pin=1234&item=3&slide=2    item: number (1 = first, sections skipped) or item id; slide from 1
+ *   POST /api/transpose?pin=1234&by=1         live song up/down by semitones (by=0: written key); item= as goto, else live
  * The PIN can also go in an "X-PIN" header. Wrong PINs count towards the same lockout as phone remotes.
  */
 function serveApi(path: string, req: IncomingMessage, res: ServerResponse, ip: string): void {
@@ -166,8 +167,9 @@ function serveApi(path: string, req: IncomingMessage, res: ServerResponse, ip: s
     return json(res, 200, apiStatus())
   }
   const simple: Record<string, RemoteCommand['type']> = { next: 'next', prev: 'prev', black: 'black', hidetext: 'hideText', clear: 'clear' }
-  const known = cmd.toLowerCase() === 'goto' || cmd.toLowerCase() in simple
-  if (!known) return json(res, 404, { error: `Unknown command “${cmd}”. Use next, prev, black, hideText, clear, goto or status.` })
+  const known = ['goto', 'transpose'].includes(cmd.toLowerCase()) || cmd.toLowerCase() in simple
+  if (!known)
+    return json(res, 404, { error: `Unknown command “${cmd}”. Use next, prev, black, hideText, clear, goto, transpose or status.` })
   if (req.method !== 'POST') return json(res, 405, { error: 'Use POST' })
 
   const f = failures.get(ip)
@@ -189,6 +191,15 @@ function serveApi(path: string, req: IncomingMessage, res: ServerResponse, ip: s
     if (!Number.isInteger(slide) || slide < 1 || slide > item.slides.length)
       return json(res, 400, { error: `“${item.title}” has ${item.slides.length} slide${item.slides.length === 1 ? '' : 's'}.` })
     opts.onCommand({ type: 'goto', itemId: item.id, index: slide - 1 })
+  } else if (cmd.toLowerCase() === 'transpose') {
+    const items = apiItems()
+    const ref = q.get('item')
+    const item = ref ? (/^\d+$/.test(ref) ? items[Number(ref) - 1] : items.find((i) => i.id === ref)) : items.find((i) => i.id === latest?.live?.itemId)
+    if (!item) return json(res, 400, { error: ref ? `No item “${ref}”. Items are numbered from 1 (see /api/status).` : 'Nothing live. Add item=…' })
+    if (!item.chords) return json(res, 400, { error: `“${item.title}” is not a song with chords.` })
+    const by = Number(q.get('by') ?? '1')
+    if (!Number.isInteger(by) || Math.abs(by) > 11) return json(res, 400, { error: 'by must be a whole number from -11 to 11 (0 = written key).' })
+    opts.onCommand({ type: 'transpose', itemId: item.id, by })
   } else opts.onCommand({ type: simple[cmd.toLowerCase()] } as RemoteCommand)
   json(res, 200, { ok: true })
 }

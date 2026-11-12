@@ -10,6 +10,7 @@ import { bootPrefsView, writeBootPrefs } from './bootPrefs' // first: may turn o
 import { createBackup, restoreBackup } from './backup'
 import { autoBackupStatus, initAutoBackup, quitBackupWanted, runAutoBackup, setAutoBackup } from './autoBackup'
 import { printHtml, printToPdf } from './print'
+import { checkForUpdate, startUpdateChecks, updateStatus } from './updates'
 import * as db from './db'
 import { parseBibleXml } from './zefania'
 import { bibleCatalog, initBibleLibrary, installLibraryBible } from './bibleLibrary'
@@ -449,6 +450,12 @@ function registerIpc(): void {
     )
   })
   ipcMain.handle(IPC.songsWebSearch, (_e, q: string) => searchWebSongs(String(q ?? '')))
+  ipcMain.handle(IPC.updateStatus, () => updateStatus())
+  ipcMain.handle(IPC.updateCheck, () => checkForUpdate())
+  ipcMain.handle(IPC.updateOpen, () => {
+    const url = updateStatus().available?.url ?? 'https://github.com/bisayaDev/NL-Presenter/releases/latest'
+    if (/^https:\/\/github\.com\//.test(url)) void shell.openExternal(url)
+  })
   ipcMain.handle(IPC.appInfo, () => ({
     version: app.getVersion(),
     dataDir: app.getPath('userData'),
@@ -606,6 +613,14 @@ app.whenReady().then(async () => {
     }
   }, 300)
   if (process.env['NL_SNAPSHOT_DIR']) runSnapshot(process.env['NL_SNAPSHOT_DIR'])
+  startUpdateChecks({
+    enabled: () => db.getSettings()['updateCheck'] !== false,
+    skipped: () => {
+      const v = db.getSettings()['updateSkip']
+      return typeof v === 'string' ? v : null
+    },
+    notify: (info) => sendOperator(IPC.updateAvailable, info)
+  })
 
   let reconnectTimer: ReturnType<typeof setTimeout> | undefined
   const onDisplaysChanged = (): void => {

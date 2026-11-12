@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Guitar, Languages, LayoutList, Minus, Plus, StickyNote, Type } from 'lucide-react'
+import { Guitar, Languages, LayoutList, Metronome, Minus, Plus, StickyNote, Type } from 'lucide-react'
 import type { LanguageMode, Slide, Song } from '@shared/types'
 import SlideView from '@/components/SlideView'
 import ChordText from '@/components/ChordText'
@@ -17,6 +17,7 @@ import {
   transposeText
 } from '@shared/chords'
 import { hasSecondLanguage, languageText, splitLanguages } from '@shared/bilingual'
+import { BPM_MAX, BPM_MIN, TIME_SIGNATURES, normalizeBpm, tapTempo } from '@shared/tempo'
 import { useSmallSlides } from '@/lib/fitCheck'
 import { SECTION_LABELS, lyricsToSlides, slidesToLyrics, uid } from '@/lib/defaults'
 import { itemLook, useApp } from '@/store/useApp'
@@ -72,6 +73,17 @@ export default function SongEditor() {
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(!!draft)
   const [key, setKey] = useState(base?.key ?? '')
+  const [bpm, setBpm] = useState(base?.bpm ? String(base.bpm) : '')
+  const [timeSignature, setTimeSignature] = useState(base?.timeSignature ?? '')
+  const taps = useRef<number[]>([])
+  const tap = (): void => {
+    const r = tapTempo(taps.current, performance.now())
+    taps.current = r.taps
+    if (r.bpm) {
+      setBpm(String(r.bpm))
+      setDirty(true)
+    }
+  }
   const [palette, setPalette] = useState<'standard' | 'nashville'>('standard')
   const [bracket, setBracket] = useState(false) // the cursor follows a "[" that isn't closed yet
   // The lyrics field that had focus last, so palette chips insert where the cursor is.
@@ -159,6 +171,8 @@ export default function SongEditor() {
       copyright: copyright.trim() || undefined,
       ccli: ccli.trim() || undefined,
       languageMode: languageMode !== 'both' ? languageMode : undefined,
+      bpm: normalizeBpm(bpm),
+      timeSignature: timeSignature || undefined,
       updatedAt: Date.now()
     }
     await useApp.getState().saveSong(song)
@@ -397,6 +411,44 @@ export default function SongEditor() {
                 <Plus size={12} />
               </button>
             </div>
+            <div className="mx-1 h-5 w-px bg-line" />
+            <Metronome size={15} className="text-sky-300" />
+            <span className="label-caps">{t('songs.editor.tempo')}</span>
+            <input
+              value={bpm}
+              inputMode="numeric"
+              onChange={(e) => {
+                setBpm(e.target.value.replace(/[^\d]/g, '').slice(0, 3))
+                setDirty(true)
+              }}
+              onBlur={() => bpm && setBpm(normalizeBpm(Math.min(BPM_MAX, Math.max(BPM_MIN, Number(bpm))))?.toString() ?? '')}
+              placeholder="BPM" // i18n-ignore
+              title={t('songs.editor.bpmHint')}
+              className="h-7 w-12 rounded bg-panel-2 px-1.5 text-right text-[12.5px] tabular-nums outline-none"
+            />
+            <button
+              onClick={tap}
+              title={t('songs.editor.tapHint')}
+              className="h-7 whitespace-nowrap rounded bg-sky-400/10 px-2 text-[11.5px] font-semibold text-sky-300 hover:bg-sky-400/25 active:bg-sky-400/40"
+            >
+              {t('songs.editor.tap')}
+            </button>
+            <select
+              value={timeSignature}
+              onChange={(e) => {
+                setTimeSignature(e.target.value)
+                setDirty(true)
+              }}
+              title={t('songs.editor.timeHint')}
+              className="h-7 rounded bg-panel-2 px-1.5 text-[12.5px] outline-none"
+            >
+              <option value="">—</option>
+              {[...new Set([...TIME_SIGNATURES, ...(timeSignature ? [timeSignature] : [])])].map((ts) => (
+                <option key={ts} value={ts}>
+                  {ts}
+                </option>
+              ))}
+            </select>
             <div className="mx-1 h-5 w-px bg-line" />
             <div className="flex rounded bg-panel-2 p-0.5 text-[11.5px]">
               {(['standard', 'nashville'] as const).map((p) => (

@@ -94,6 +94,6 @@ export function CaptionCard({
 }
 
 /** The caption on the audience screen (inside SlideView's virtual stage, so sizes are in px). */
-export default function CaptionLayer({ caption, w, h }: { caption: Caption | null | undefined; w: number; h: number }) {
-  return <CaptionCard caption={caption} u={(n) => `${(n * h) / 100}px`} left={`${w * 0.05}px`} bottom={8} />
+export default function CaptionLayer({ caption, w, h, lift = 0 }: { caption: Caption | null | undefined; w: number; h: number; lift?: number }) {
+  return <CaptionCard caption={caption} u={(n) => `${(n * h) / 100}px`} left={`${w * 0.05}px`} bottom={8 + lift} />
 }

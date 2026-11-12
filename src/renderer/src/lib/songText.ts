@@ -1,6 +1,7 @@
 import type { Song, SongText } from '@shared/types'
 import { lyricsToSlides, slidesToLyrics, uid } from './defaults'
 import { extractKey, keyName, parseKey } from '@shared/chords'
+import { normalizeBpm, normalizeTimeSignature } from '@shared/tempo'
 
 // Plain-text song files:
 //
@@ -10,6 +11,8 @@ import { extractKey, keyName, parseKey } from '@shared/chords'
 //   Key: G
 //   Copyright: Public domain
 //   CCLI: 22025
+//   Tempo: 72          ("BPM: 72" is read too)
+//   Time: 3/4
 //
 //   [Verse 1]
 //   Amazing grace! How sweet the sound
@@ -25,6 +28,8 @@ export function songToText(s: Song): SongText {
   if (s.key) head.push(`Key: ${s.key}`)
   if (s.copyright) head.push(`Copyright: ${s.copyright}`)
   if (s.ccli) head.push(`CCLI: ${s.ccli}`)
+  if (s.bpm) head.push(`Tempo: ${s.bpm}`)
+  if (s.timeSignature) head.push(`Time: ${s.timeSignature}`)
   return { name: s.title, text: `${head.join('\n')}\n\n${slidesToLyrics(s.slides)}\n` }
 }
 
@@ -33,7 +38,7 @@ export function textToSong(file: SongText): Song | null {
   const meta: Record<string, string> = {}
   let i = 0
   while (i < lines.length) {
-    const m = lines[i].match(/^\s*(title|author|tags|ccli|copyright|key)\s*:\s*(.*)$/i)
+    const m = lines[i].match(/^\s*(title|author|tags|ccli|copyright|key|tempo|bpm|time|time signature)\s*:\s*(.*)$/i)
     if (!m) break
     meta[m[1].toLowerCase()] = m[2].trim()
     i++
@@ -56,6 +61,8 @@ export function textToSong(file: SongText): Song | null {
     copyright: meta.copyright || undefined,
     // "CCLI: 1234567", "CCLI Song # 1234567" or just the number.
     ccli: meta.ccli?.replace(/^(song\s*)?#?\s*/i, '').trim() || undefined,
+    bpm: normalizeBpm(meta.tempo ?? meta.bpm),
+    timeSignature: normalizeTimeSignature(meta.time ?? meta['time signature']),
     updatedAt: Date.now()
   }
 }

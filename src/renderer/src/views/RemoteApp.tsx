@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatTime, t, useT } from '@/i18n'
 import LangPicker from '@/i18n/LangPicker'
-import { BookOpen, Check, ChevronLeft, ChevronRight, EyeOff, LayoutGrid, ListOrdered, Loader2, MessageCircle, Search, Send, Square, Star, X } from 'lucide-react'
+import { BookOpen, Check, ChevronLeft, ChevronRight, EyeOff, Guitar, LayoutGrid, ListOrdered, Loader2, MessageCircle, Minus, Plus, RotateCcw, Search, Send, Square, Star, X } from 'lucide-react'
 import type { ChatMessage, ItemSummary, Slide, Snapshot, VerseHit } from '@shared/types'
 import SlideView from '@/components/SlideView'
 import { useLanConnection } from '@/lib/net'
 import { useWakeLock } from './StageApp'
 import { uid } from '@/lib/defaults'
 import { BrandLockup } from '@/components/BrandMark'
+import { transposeKey } from '@shared/chords'
+import { tempoLabel } from '@shared/tempo'
 
 type View = 'flow' | 'slides' | 'bible' | 'chat'
 const NAME_KEY = 'nl-remote-name'
@@ -72,6 +74,7 @@ export default function RemoteApp() {
             black={f.black}
             countdown={f.countdown}
             logo={f.logo}
+            ticker={f.ticker}
             clockOffset={conn.offset}
             className={`${f.aspect === '16:9' ? 'aspect-video' : 'aspect-[4/3]'} w-full rounded-lg ring-1 ring-line`}
           />
@@ -119,6 +122,7 @@ export default function RemoteApp() {
             liveIndex={liveItem ? snap.live!.index : -1}
             snap={snap}
             onGo={(itemId, index) => cmd({ t: 'cmd', cmd: { type: 'goto', itemId, index } })}
+            onTranspose={(itemId, by) => cmd({ t: 'cmd', cmd: { type: 'transpose', itemId, by } })}
           />
         )}
         {view === 'bible' && (
@@ -202,12 +206,14 @@ function SlidesView({
   item,
   liveIndex,
   snap,
-  onGo
+  onGo,
+  onTranspose
 }: {
   item: ItemSummary | null
   liveIndex: number
   snap: Snapshot
   onGo: (itemId: string, index: number) => void
+  onTranspose: (itemId: string, by: number) => void
 }) {
   const liveRef = useRef<HTMLButtonElement>(null)
   const { t } = useT()
@@ -218,6 +224,7 @@ function SlidesView({
   return (
     <div>
       <div className="label-caps px-1 py-1">{item.title}</div>
+      {item.chords && <TransposeBar chords={item.chords} onTranspose={(by) => onTranspose(item.id, by)} />}
       <div className="grid grid-cols-2 gap-2">
         {item.slides.map((sl, i) => (
           <button
@@ -248,6 +255,39 @@ function SlidesView({
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** Live transpose for the song shown (this service only; changes the chords on stage screens). */
+function TransposeBar({ chords, onTranspose }: { chords: NonNullable<ItemSummary['chords']>; onTranspose: (by: number) => void }) {
+  const { t } = useT()
+  const semis = chords.transpose
+  const played = transposeKey(chords.key, semis)
+  const btn = 'grid h-10 w-11 shrink-0 place-items-center rounded-lg bg-panel-2 text-fg active:bg-accent-soft disabled:opacity-30'
+  return (
+    <div className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-panel px-2 py-1.5">
+      <Guitar size={16} className="ml-1 shrink-0 text-muted" />
+      <span className="min-w-0 flex-1 truncate text-[14px]">
+        {played ? t('remote.transpose.key', { key: played }) : t('remote.transpose.title')}
+        {semis !== 0 && (
+          <span className="ml-1.5 text-[12px] text-amber-400">
+            {semis > 0 ? '+' : ''}
+            {semis}
+            {chords.key ? ` · ${t('remote.transpose.written', { key: chords.key })}` : ''}
+          </span>
+        )}
+        {chords.bpm ? <span className="block truncate text-[12px] text-muted">{tempoLabel(chords.bpm, chords.time)}</span> : null}
+      </span>
+      <button onClick={() => onTranspose(0)} disabled={semis === 0} className={btn} title={t('remote.transpose.reset')} aria-label={t('remote.transpose.reset')}>
+        <RotateCcw size={16} />
+      </button>
+      <button onClick={() => onTranspose(-1)} className={btn} title={t('remote.transpose.down')} aria-label={t('remote.transpose.down')}>
+        <Minus size={18} />
+      </button>
+      <button onClick={() => onTranspose(1)} className={btn} title={t('remote.transpose.up')} aria-label={t('remote.transpose.up')}>
+        <Plus size={18} />
+      </button>
     </div>
   )
 }

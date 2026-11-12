@@ -3,6 +3,8 @@ import { countdownText, countdownTitle, useNow } from '@/lib/time'
 import { useT } from '@/i18n'
 import FitText from './FitText'
 import { CaptionCard } from './CaptionLayer'
+import { TickerBand } from './TickerLayer'
+import { TICKER_HEIGHT, useTickerActive } from '@/lib/ticker'
 import { textEffects } from '@/lib/textEffects'
 import { parallelOf } from '@shared/bible'
 import { splitLanguages } from '@shared/bilingual'
@@ -28,12 +30,15 @@ export default function OverlayView({
   const cols = parallelOf(slide)
   const stacked = slide?.parallelLayout === 'stacked'
   const words = splitLanguages(slide?.text ?? '')
+  // An announcement takes the bottom strip; everything that sits low moves up above it.
+  const lift = useTickerActive(frame.ticker, offset) ? TICKER_HEIGHT : 0
   const box: React.CSSProperties = {
     position: 'absolute',
     left: '5cqw',
     right: '5cqw',
     height: `${o.size}cqh`,
-    ...(o.position === 'lower' ? { bottom: '6cqh' } : o.position === 'top' ? { top: '6cqh' } : { top: `${(100 - o.size) / 2}cqh` })
+    transition: 'bottom 300ms ease',
+    ...(o.position === 'lower' ? { bottom: `${6 + lift}cqh` } : o.position === 'top' ? { top: '6cqh' } : { top: `${(100 - o.size) / 2}cqh` })
   }
 
   return (
@@ -111,16 +116,18 @@ export default function OverlayView({
         caption={frame.caption}
         u={(n) => `${n}cqh`}
         left="5cqw"
-        bottom={show && o.position === 'lower' ? 6 + o.size + 2 : 8}
+        bottom={(show && o.position === 'lower' ? 6 + o.size + 2 : 8) + lift}
         fontFamily={style.fontFamily}
       />
+      <TickerBand ticker={frame.ticker} u={(n) => `${n}cqh`} offset={offset} />
       {frame.countdown && <OverlayCountdown frame={frame} style={style} offset={offset} />}
       {frame.footer && show && (
         <div
           className="absolute"
           style={{
             left: '5cqw',
-            bottom: '1.8cqh', // under the lyrics band when it sits low
+            bottom: `${1.8 + lift}cqh`, // under the lyrics band when it sits low
+            transition: 'bottom 300ms ease',
             right: '5cqw',
             whiteSpace: 'nowrap',
             overflow: 'hidden',

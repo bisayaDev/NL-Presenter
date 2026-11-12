@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Drama, EyeOff, MonitorOff, Timer, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Drama, EyeOff, Metronome, MonitorOff, Timer, X } from 'lucide-react'
 import SlideView from './SlideView'
 import CuePreview from './CuePreview'
 import ServiceTimers from './ServiceTimers'
 import VideoTransport from './VideoTransport'
+import MetronomeControl from './MetronomeControl'
+import { useMetronome } from '@/lib/metronome'
 import { SECTION_COLORS } from '@/lib/defaults'
-import { audienceSlide, buildFrame, itemLook, nextLocation, selectLiveSlide, slideBackground, useApp } from '@/store/useApp'
+import { audienceSlide, buildFrame, itemLook, liveTempo, nextLocation, selectLiveSlide, slideBackground, useApp } from '@/store/useApp'
 import { labelColor } from '@shared/labels'
 import { formatTime, t, useT } from '@/i18n'
 
@@ -48,6 +50,9 @@ export default function LiveSidebar() {
   const upNext = nx?.slide ?? null
   const nextLook = itemLook(state, nx?.item) // drawn as the audience will see it
   const { next, prev, toggleHideText, toggleBlack, clearLive, hideText, black, service, goLive } = state
+  const metro = useMetronome()
+  // Metronome: shown while a song with a BPM is live, while it clicks, or when opened from the header.
+  const showMetro = metro.open || metro.on || !!liveTempo(state)
 
   return (
     <aside className="flex w-[340px] shrink-0 flex-col overflow-y-auto border-l border-line bg-panel">
@@ -64,6 +69,15 @@ export default function LiveSidebar() {
         ) : (
           <span className="label-caps">{t('live.outputPreview')}</span>
         )}
+        <span className="flex-1" />
+        <button
+          onClick={() => metro.set({ open: !metro.open })}
+          aria-pressed={showMetro}
+          title={t('live.metro.title')}
+          className={`mr-1.5 grid h-7 w-7 place-items-center rounded-md ${metro.on ? 'text-accent-text' : 'text-muted hover:text-fg'}`}
+        >
+          <Metronome size={14} />
+        </button>
         {live && (
           <button
             onClick={clearLive}
@@ -109,6 +123,7 @@ export default function LiveSidebar() {
             <ChevronRight size={17} />
           </CtlButton>
         </div>
+        {showMetro && <MetronomeControl />}
       </div>
 
       <div className="mt-5 px-4">

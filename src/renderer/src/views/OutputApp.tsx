@@ -34,6 +34,7 @@ export default function OutputApp() {
       motion={frame?.transition}
       video={frame?.video}
       footer={frame?.footer}
+      ticker={frame?.ticker}
       clockOffset={offset}
       audio
       className="h-screen w-screen bg-black"

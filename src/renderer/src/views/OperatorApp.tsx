@@ -37,7 +37,8 @@ function useLiveSync(): void {
     const offLang = onLangChange(push)
     // Phone remotes pause while rehearsing: their screens stay frozen too, so commands would act unseen.
     const offCmd = window.nl.state.onCommand((cmd) => {
-      if (!useApp.getState().rehearsal) useApp.getState().runCommand(cmd)
+      // Transpose is a service edit, not a screen change, so it still works (the band may rehearse in a new key).
+      if (!useApp.getState().rehearsal || cmd.type === 'transpose') useApp.getState().runCommand(cmd)
     })
     return () => {
       unsub()

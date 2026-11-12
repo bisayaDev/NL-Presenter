@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Archive, Check, CheckCircle2, Loader2, Pipette, RotateCcw, X } from 'lucide-react'
-import type { BackupSummary, BibleInfo } from '@shared/types'
+import type { BackupSummary, BibleInfo, UpdateStatus } from '@shared/types'
 import { formatBytes } from '@/lib/media'
 import { ACCENT_PRESETS, applyAccent, DEFAULT_ACCENT, saveAccent, ZOOM_STEPS } from '@/lib/appearance'
 import { bootSettings, useApp } from '@/store/useApp'
@@ -103,6 +103,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
               <span className="text-muted">{t('settings.about.dataFolder')}</span>
               <span className="break-all font-mono text-[11.5px] select-text">{info?.dataDir}</span>
             </div>
+            <UpdateSettings />
           </section>
 
           <section>
@@ -348,6 +349,70 @@ function ResultCard({ kind, path, summary: s }: { kind: 'backup' | 'restore'; pa
         </div>
       )}
       <div className="mt-1 break-all font-mono text-[11px] text-dim select-text">{path}</div>
+    </div>
+  )
+}
+
+/** Settings → About: automatic update checks and "Check now" (see src/main/updates.ts). */
+function UpdateSettings() {
+  const [st, setSt] = useState<UpdateStatus | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [checked, setChecked] = useState(false)
+  const { t } = useT()
+  useEffect(() => {
+    window.nl.updates.status().then(setSt)
+  }, [])
+  const check = async (): Promise<void> => {
+    setBusy(true)
+    try {
+      setSt(await window.nl.updates.check())
+      setChecked(true)
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (!st) return null
+  return (
+    <div className="mt-3 flex flex-col gap-2 text-[12.5px]">
+      <label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={st.auto}
+          onChange={async (e) => {
+            await window.nl.data.setSetting('updateCheck', e.target.checked)
+            setSt(await window.nl.updates.status())
+          }}
+          className="accent-[var(--color-accent)]"
+        />
+        {t('settings.update.auto')}
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={check}
+          disabled={busy}
+          className="flex items-center gap-1.5 rounded-md bg-panel-2 px-3 py-1.5 hover:bg-panel-3 disabled:opacity-60"
+        >
+          {busy && <Loader2 size={13} className="animate-spin" />}
+          {t('settings.update.checkNow')}
+        </button>
+        {checked && !busy && (
+          st.error ? (
+            <span className="text-amber-400">{t('settings.update.failed')}</span>
+          ) : st.available ? (
+            <span className="flex items-center gap-2">
+              <span className="text-emerald-400">{t('settings.update.available', { version: st.available.version })}</span>
+              <button onClick={() => void window.nl.updates.open()} className="text-accent-text underline-offset-2 hover:underline">
+                {t('settings.update.download')}
+              </button>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-muted">
+              <Check size={13} /> {t('settings.update.latest')}
+            </span>
+          )
+        )}
+      </div>
+      <p className="text-[11.5px] leading-snug text-dim">{t('settings.update.note')}</p>
     </div>
   )
 }

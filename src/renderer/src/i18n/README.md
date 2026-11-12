@@ -106,7 +106,7 @@ Status: ✅ converted, ⬜ to do.
 - **scripture** — `ScriptureTab.tsx`, `BibleLibrary.tsx`, `PassageList.tsx` ⬜
 - **media** — `MediaTab.tsx`, `MediaThumb.tsx`, `DeckProgress.tsx`, `LoopView.tsx` ⬜; `lib/deck.ts` (progress/error text)
 - **countdown** — `CountdownTab.tsx` ⬜; `lib/time.ts` (clock text); the default title in `DEFAULT_COUNTDOWN` (`store/useApp.ts`, that one line)
-- **stage** — `StageTab.tsx`, `StageView.tsx`, `StageApp.tsx`, `StageExtras.tsx`, `CaptionPanel.tsx`, `CaptionLayer.tsx`, `BroadcastPanel.tsx`, `OverlayView.tsx`, `OverlayApp.tsx`, `DisplayApp.tsx`, `OutputApp.tsx`, `SlideView.tsx`, `FitText.tsx` ⬜
+- **stage** — `StageTab.tsx`, `StageView.tsx`, `StageApp.tsx`, `StageExtras.tsx`, `CaptionPanel.tsx`, `CaptionLayer.tsx`, `TickerPanel.tsx`, `TickerLayer.tsx`, `BroadcastPanel.tsx`, `OverlayView.tsx`, `OverlayApp.tsx`, `DisplayApp.tsx`, `OutputApp.tsx`, `SlideView.tsx`, `FitText.tsx` ⬜
 - **settings** — `SettingsDialog.tsx` ✅, `SettingsExtras.tsx` ✅
 - **service** — `ServiceMenu.tsx` ✅, `PrintDialog.tsx`, `PreflightDialog.tsx`, `Onboarding.tsx`, `EmptyStates.tsx`, `ResumeBanner.tsx`, `QuickKeys.tsx`, `CommandPalette.tsx` ⬜; `lib/printSheet.ts`, `lib/serviceDates.ts` (`agoText` only), `lib/guide.ts`
 - **remote** — `RemoteApp.tsx` (PIN screen ✅, rest ⬜: the check already flags its leftover labels), `main.tsx` (phone landing) ✅, `i18n/LangPicker.tsx` ✅
