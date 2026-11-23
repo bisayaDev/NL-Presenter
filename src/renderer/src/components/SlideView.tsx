@@ -1,6 +1,6 @@
 import { createElement, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { Globe, Video } from 'lucide-react'
-import type { AspectRatio, Background, CountdownState, Logo, MediaFit, Slide, TextStyle, Transition, VideoPlayback } from '@shared/types'
+import type { AspectRatio, Background, CameraLook, CameraOverlayFrame, CountdownState, Logo, MediaFit, Slide, TextStyle, Transition, VideoPlayback } from '@shared/types'
 import { countdownText, countdownTitle, useNow } from '@/lib/time'
 import { t, useT } from '@/i18n'
 import { mediaUrl } from '@/lib/media'
@@ -51,6 +51,8 @@ interface Props {
   footer?: string | null
   /** Announcement band along the bottom (audience and wireless screens; never stage or thumbnails). */
   ticker?: import('@shared/types').TickerMessage | null
+  /** Camera overlay (drawn live only in this app's own windows, never on thumbnails or wireless screens). */
+  camera?: CameraOverlayFrame | null
   className?: string
 }
 
@@ -72,6 +74,7 @@ export default function SlideView({
   video,
   footer,
   ticker,
+  camera,
   className
 }: Props) {
   const outer = useRef<HTMLDivElement>(null)
@@ -81,6 +84,8 @@ export default function SlideView({
   const anim: Transition | null = !thumbnail && motion && motion.kind !== 'cut' && motion.ms > 0 ? motion : null
   // While an announcement plays, the caption and copyright line move up above its band.
   const tickerOn = useTickerActive(thumbnail ? null : ticker, clockOffset ?? 0)
+  const cam = camera && camera.deviceId && !thumbnail && inElectron && liveSources !== false ? camera : null
+  const camSound = !!audio && !!cam?.sound
 
   useLayoutEffect(() => {
     const el = outer.current
@@ -109,14 +114,28 @@ export default function SlideView({
           w={w}
           h={h}
         />
-        <TextStack
-          content={{ slide, countdown: countdown ?? null, style, hideText: !!hideText }}
-          anim={anim}
-          animateHide={!thumbnail}
-          clockOffset={clockOffset ?? 0}
-          w={w}
-          h={h}
-        />
+        {cam?.layout === 'behind' && (
+          <div className="absolute inset-0">
+            <CameraLayer deviceId={cam.deviceId} label={cam.label} sound={camSound} look={cam.look} />
+          </div>
+        )}
+        {cam?.layout === 'side' && (
+          <div className="absolute inset-y-0" style={{ width: w / 2, [cam.side]: 0 }}>
+            <CameraLayer deviceId={cam.deviceId} label={cam.label} sound={camSound} look={cam.look} />
+          </div>
+        )}
+        {/* Side by side: the words fill the other half. */}
+        <div className="absolute inset-y-0" style={cam?.layout === 'side' ? { width: w / 2, [cam.side === 'left' ? 'right' : 'left']: 0 } : { left: 0, width: w }}>
+          <TextStack
+            content={{ slide, countdown: countdown ?? null, style, hideText: !!hideText }}
+            anim={anim}
+            animateHide={!thumbnail}
+            clockOffset={clockOffset ?? 0}
+            w={cam?.layout === 'side' ? w / 2 : w}
+            h={h}
+          />
+        </div>
+        {cam?.layout === 'pip' && <CameraBox cam={cam} sound={camSound} w={w} h={h} />}
         {logo && <LogoLayer logo={logo} w={w} />}
         {caption !== undefined && !thumbnail && <CaptionLayer caption={caption} w={w} h={h} lift={tickerOn ? TICKER_HEIGHT : 0} />}
         {footer && !thumbnail && !countdown && (
@@ -323,7 +342,7 @@ function BackgroundLayer({
     )
   if (bg.kind === 'camera')
     return live && inElectron ? (
-      <CameraLayer key={bg.deviceId} deviceId={bg.deviceId} label={bg.label} sound={audio && bg.muted === false} />
+      <CameraLayer key={bg.deviceId} deviceId={bg.deviceId} label={bg.label} sound={audio && bg.muted === false} look={bg.look} />
     ) : (
       <SourcePlaceholder
         icon="camera"
@@ -496,7 +515,7 @@ function WebLayer({ url, muted, w, h }: { url: string; muted: boolean; w: number
 }
 
 /** A local camera or capture device. Sound only on the audience screen, and only when turned on. */
-function CameraLayer({ deviceId, label, sound }: { deviceId: string; label?: string; sound: boolean }) {
+function CameraLayer({ deviceId, label, sound, look }: { deviceId: string; label?: string; sound: boolean; look?: CameraLook }) {
   const ref = useRef<HTMLVideoElement>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -535,7 +554,69 @@ function CameraLayer({ deviceId, label, sound }: { deviceId: string; label?: str
   }, [deviceId, sound])
 
   if (error) return <SourcePlaceholder icon="camera" title={label || t('stage.source.camera')} sub={error} error />
-  return <video ref={ref} className="absolute inset-0 h-full w-full object-cover" autoPlay playsInline muted={!sound} />
+  const css = cameraCss(look)
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-black">
+      <div className="absolute inset-0" style={css.turn}>
+        <video ref={ref} className="absolute inset-0 h-full w-full" style={css.video} autoPlay playsInline muted={!sound} />
+      </div>
+      {css.tint && <div className="pointer-events-none absolute inset-0" style={css.tint} />}
+    </div>
+  )
+}
+
+/** Corner box: the camera in a corner, sized as a share of the screen width. */
+function CameraBox({ cam, sound, w, h }: { cam: CameraOverlayFrame; sound: boolean; w: number; h: number }) {
+  const bw = (cam.size / 100) * w
+  const bh = Math.min(h - 2 * MARGIN, (bw * 9) / 16)
+  const top = cam.corner === 'tl' || cam.corner === 'tr'
+  const left = cam.corner === 'tl' || cam.corner === 'bl'
+  return (
+    <div
+      className="absolute overflow-hidden"
+      style={{
+        width: bw,
+        height: bh,
+        [top ? 'top' : 'bottom']: MARGIN,
+        [left ? 'left' : 'right']: MARGIN,
+        borderRadius: cam.rounded ? 28 : 0,
+        boxShadow: `${cam.border ? '0 0 0 6px rgba(255,255,255,.9), ' : ''}0 12px 40px rgba(0,0,0,.55)`
+      }}
+    >
+      <CameraLayer deviceId={cam.deviceId} label={cam.label} sound={sound} look={cam.look} />
+    </div>
+  )
+}
+
+/**
+ * A camera look as CSS: `turn` mirrors / turns the whole picture, `video` zooms round the chosen point and applies
+ * the colour filters, `tint` warms or cools it.
+ */
+export function cameraCss(look: CameraLook | undefined): { turn: CSSProperties; video: CSSProperties; tint: CSSProperties | null } {
+  const l = look
+  const turn: CSSProperties = l && (l.mirror || l.flip) ? { transform: `${l.mirror ? 'scaleX(-1) ' : ''}${l.flip ? 'rotate(180deg)' : ''}` } : {}
+  if (!l) return { turn, video: { objectFit: 'cover' }, tint: null }
+  // Blur shows soft dark edges: zoom in a touch to hide them.
+  const zoom = l.zoom * (l.blur > 0 ? 1 + l.blur / 150 : 1)
+  const filters = [
+    l.brightness !== 100 && `brightness(${l.brightness}%)`,
+    l.contrast !== 100 && `contrast(${l.contrast}%)`,
+    l.saturation !== 100 && `saturate(${l.saturation}%)`,
+    l.grayscale && 'grayscale(1)',
+    l.blur > 0 && `blur(${l.blur}px)`
+  ].filter(Boolean)
+  return {
+    turn,
+    video: {
+      objectFit: l.fit,
+      transformOrigin: `${l.x * 100}% ${l.y * 100}%`,
+      transform: zoom !== 1 ? `scale(${zoom})` : undefined,
+      filter: filters.length ? filters.join(' ') : undefined
+    },
+    tint: l.warmth
+      ? { background: l.warmth > 0 ? 'rgb(255 150 40)' : 'rgb(60 140 255)', opacity: (Math.abs(l.warmth) / 100) * 0.35, mixBlendMode: 'soft-light' }
+      : null
+  }
 }
 
 const MARGIN = 48

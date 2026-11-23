@@ -16,6 +16,7 @@ import {
   Plus,
   Presentation,
   Rows3,
+  SlidersHorizontal,
   StickyNote,
   Timer,
   Square,
@@ -36,6 +37,7 @@ import { ClickModeToggle, ShortcutsButton } from '@/components/SpeedControls'
 import MinutesControl, { minutesText, plannedTotal } from '@/components/MinutesControl'
 import ArrangeBar, { ArrangeButton, BackgroundPickerDialog } from '@/components/ArrangeBar'
 import SlideMenu, { QuickEditDialog, canEditSlides } from '@/components/SlideMenu'
+import CameraDialog from '@/components/CameraDialog'
 import Onboarding from '@/components/Onboarding'
 import { setItemNotes } from '@/components/ItemNotes'
 import { useSmallSlides } from '@/lib/fitCheck'
@@ -838,6 +840,7 @@ function TransposeControl({ item }: { item: ServiceItem }) {
 /** Sound toggle and edit for website / camera items. */
 function SourceControls({ item }: { item: ServiceItem }) {
   const [editing, setEditing] = useState(false)
+  const [adjusting, setAdjusting] = useState(false)
   const bg = item.background as Extract<Background, { kind: 'web' | 'camera' }>
   const toggleSound = (): void =>
     useApp.setState((s) => ({
@@ -865,7 +868,17 @@ function SourceControls({ item }: { item: ServiceItem }) {
       >
         <Pencil size={12} /> <span className="hidden @md:inline">{t('common.edit')}</span>
       </button>
+      {bg.kind === 'camera' && (
+        <button
+          onClick={() => setAdjusting(true)}
+          title={t('live.camera.adjust')}
+          className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-0.5 text-[12px] text-muted hover:bg-panel-2 hover:text-fg"
+        >
+          <SlidersHorizontal size={12} /> <span className="hidden @md:inline">{t('live.camera.adjust')}</span>
+        </button>
+      )}
       {editing && <SourceDialog kind={item.kind as SourceKind} edit={item} onClose={() => setEditing(false)} />}
+      {adjusting && bg.kind === 'camera' && <CameraDialog deviceOnly={{ deviceId: bg.deviceId, label: bg.label }} onClose={() => setAdjusting(false)} />}
     </>
   )
 }

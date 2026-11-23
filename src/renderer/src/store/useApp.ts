@@ -28,7 +28,8 @@ import type {
   CopyrightSettings
 } from '@shared/types'
 import { hasChords, stripChords } from '@shared/chords'
-import type { BackgroundCue, BeatPulse } from '@shared/types'
+import type { BackgroundCue, BeatPulse, CameraLook, CameraOverlay } from '@shared/types'
+import { cleanLook, cleanOverlay, DEFAULT_CAMERA_OVERLAY, isDefaultLook } from '@shared/camera'
 import { beatsPerBar, type StageTempo } from '@shared/tempo'
 import { languageText, plainLanguages, splitLanguages } from '@shared/bilingual'
 import { labelColor, labelKey } from '@shared/labels'
@@ -160,6 +161,13 @@ interface AppState {
   beatStartedAt: number | null
   /** Restart the beat count: beat 1 is now (re-syncs every stage screen and the metronome). */
   restartBeat: () => void
+  /** Framing and colour per camera (by device id); used wherever that camera shows. */
+  cameraLooks: Record<string, CameraLook>
+  /** Change a camera's look; null resets it. */
+  setCameraLook: (deviceId: string, patch: Partial<CameraLook> | null) => void
+  /** Camera overlay over whatever is live (its settings are saved; it always starts off). */
+  cameraOverlay: CameraOverlay
+  setCameraOverlay: (patch: Partial<CameraOverlay>) => void
   resetServiceTimer: () => void
   /** Planned length of an item (undefined = none). */
   setItemMinutes: (itemId: string, minutes: number | undefined) => void
@@ -423,6 +431,15 @@ export const useApp = create<AppState>()((set, get) => ({
   itemStartedAt: null,
   beatStartedAt: null,
   restartBeat: () => set({ beatStartedAt: Date.now() }),
+  cameraLooks: {},
+  setCameraLook: (deviceId, patch) =>
+    set((s) => {
+      const { [deviceId]: old, ...rest } = s.cameraLooks
+      const next = patch ? cleanLook({ ...old, ...patch }) : null
+      return { cameraLooks: next && !isDefaultLook(next) ? { ...rest, [deviceId]: next } : rest }
+    }),
+  cameraOverlay: DEFAULT_CAMERA_OVERLAY,
+  setCameraOverlay: (patch) => set((s) => ({ cameraOverlay: { ...s.cameraOverlay, ...patch } })),
 
   // Single-flight: concurrent calls (e.g. React StrictMode running effects twice) share one load,
   // so a first run can't create two starter services.
@@ -486,6 +503,10 @@ export const useApp = create<AppState>()((set, get) => ({
           ...((s.stage as object) ?? {}),
           message: ''
         },
+        cameraLooks: Object.fromEntries(
+          Object.entries((s.cameraLooks as Record<string, Partial<CameraLook>> | undefined) ?? {}).map(([id, l]) => [id, cleanLook(l)])
+        ),
+        cameraOverlay: cleanOverlay(s.cameraOverlay as Partial<CameraOverlay> | undefined),
         // Saved: wording, target and auto-hide. Never visible after a restart.
         caption: { ...DEFAULT_CAPTION, ...((s.caption as Partial<CaptionState>) ?? {}), visible: false },
         captionPresets: Array.isArray(s.captionPresets) ? (s.captionPresets as Caption[]) : [],
@@ -1297,6 +1318,7 @@ function restoreCountdown(saved?: Partial<CountdownState>): CountdownState {
 let autosaveStarted = false
 let savedCountdownKey = ''
 let savedStageKey = ''
+let savedCameraKey = ''
 let savedCaptionKey = ''
 let savedTickerKey = ''
 function startAutosave(): void {
@@ -1354,6 +1376,16 @@ function startAutosave(): void {
       if (key !== savedStageKey) {
         savedStageKey = key
         window.nl.data.setSetting('stage', keep)
+      }
+    }
+    if (s.cameraLooks !== prev.cameraLooks) window.nl.data.setSetting('cameraLooks', s.cameraLooks)
+    if (s.cameraOverlay !== prev.cameraOverlay) {
+      // Everything but on/off (it always starts off).
+      const { on: _on, ...keep } = s.cameraOverlay
+      const key = JSON.stringify(keep)
+      if (key !== savedCameraKey) {
+        savedCameraKey = key
+        window.nl.data.setSetting('cameraOverlay', keep)
       }
     }
     if (s.caption !== prev.caption) {
@@ -1653,9 +1685,11 @@ export function selectUpNext(s: S): Slide | null {
 export function buildFrame(s: S): LiveFrame {
   const live = selectLiveSlide(s)
   const look = itemLook(s, live?.item)
-  const background = slideBackground(live?.slide, live?.item, look.background, s.mediaFit)
+  const background = withCameraLook(slideBackground(live?.slide, live?.item, look.background, s.mediaFit), s.cameraLooks)
+  const cam = s.cameraOverlay
   return {
     transition: s.transition,
+    camera: cam.on && cam.deviceId ? cameraFrame(cam, s.cameraLooks) : null,
     ...(background.kind === 'video' && s.video?.src === background.src ? { video: s.video } : {}),
     slide: audienceSlide(live?.slide ?? null, live?.item),
     footer: copyrightFooter(s, live),
@@ -1674,6 +1708,17 @@ export function buildFrame(s: S): LiveFrame {
     caption: s.caption.target === 'both' ? captionOf(s) : null,
     ticker: s.ticker.current
   }
+}
+
+/** A camera background with that camera's saved look (other backgrounds unchanged). */
+export function withCameraLook(bg: Background, looks: Record<string, CameraLook>): Background {
+  return bg.kind === 'camera' && looks[bg.deviceId] ? { ...bg, look: looks[bg.deviceId] } : bg
+}
+
+/** The overlay as screens draw it, with its camera's look. */
+export function cameraFrame(cam: CameraOverlay, looks: Record<string, CameraLook>): import('@shared/types').CameraOverlayFrame {
+  const { on: _on, ...rest } = cam
+  return { ...rest, ...(looks[cam.deviceId] ? { look: looks[cam.deviceId] } : {}) }
 }
 
 /** Where "next" goes: the slide and the item it belongs to (Up Next preview, stage screens). */
