@@ -111,6 +111,17 @@ export interface Slide {
   heading?: string
   background?: Background // this slide only (presentation pages); wins over the item's background
   notes?: string // speaker notes, shown on stage screens
+  /** Songs: a background slide from the arrangement (no words). Its background stays on the slides after it. */
+  cue?: boolean
+}
+
+/**
+ * Songs: a background change placed in the arrangement as its own slide (no words). Its background stays on every
+ * slide after it until the next one. In an arrangement it is the entry `@cue:<id>` (see lib/arrangement.ts).
+ */
+export interface BackgroundCue {
+  background: Background
+  name?: string
 }
 
 /**
@@ -161,6 +172,8 @@ export interface ServiceItem {
   minutes?: number
   /** Songs: section order for this service only (slide labels; see lib/arrangement.ts). Slides are rebuilt from it. */
   arrangement?: string[]
+  /** Songs: the background slides that `arrangement` places (by id). */
+  cues?: Record<string, BackgroundCue>
   /** Arrangement labels the library song no longer has (dropped; shown as a warning on the Arrange button). */
   arrangementMissing?: string[]
   /** Songs: tempo copied from the library song (see Song.bpm / Song.timeSignature). */
@@ -183,6 +196,9 @@ export interface Song {
   /** Tempo for the band (stage beat pulse, metronome): 30–300, and a time signature such as "4/4" or "6/8". */
   bpm?: number
   timeSignature?: string
+  /** Saved arrangement ("Save to song"): used by service items that have no arrangement of their own. */
+  arrangement?: string[]
+  cues?: Record<string, BackgroundCue>
   updatedAt: number
 }
 

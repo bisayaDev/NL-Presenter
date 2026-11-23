@@ -78,6 +78,7 @@ export function openDb(file: string): void {
   if (!songCols.has('language_mode')) db.exec('ALTER TABLE songs ADD COLUMN language_mode TEXT')
   if (!songCols.has('bpm')) db.exec('ALTER TABLE songs ADD COLUMN bpm INTEGER')
   if (!songCols.has('time_signature')) db.exec('ALTER TABLE songs ADD COLUMN time_signature TEXT')
+  if (!songCols.has('arrangement')) db.exec('ALTER TABLE songs ADD COLUMN arrangement TEXT')
   const serviceCols = new Set(db.prepare('PRAGMA table_info(services)').all().map((c) => c.name as string))
   if (!serviceCols.has('date')) db.exec('ALTER TABLE services ADD COLUMN date TEXT')
   // Song usage: one row per song, service and day it went live.
@@ -123,8 +124,21 @@ const toSong = (r: Row): Song => ({
   timeSignature: normalizeTimeSignature(r.time_signature),
   tags: JSON.parse(r.tags as string),
   slides: JSON.parse(r.slides as string),
+  ...readArrangement(r.arrangement),
   updatedAt: r.updated_at as number
 })
+
+/** The saved arrangement column: {"order": [...], "cues": {...}} (missing or unreadable: none). */
+function readArrangement(v: unknown): Pick<Song, 'arrangement' | 'cues'> {
+  if (typeof v !== 'string' || !v) return {}
+  try {
+    const a = JSON.parse(v) as { order?: unknown; cues?: unknown }
+    if (!Array.isArray(a.order) || !a.order.length) return {}
+    return { arrangement: a.order.filter((x): x is string => typeof x === 'string'), ...(a.cues && typeof a.cues === 'object' ? { cues: a.cues as Song['cues'] } : {}) }
+  } catch {
+    return {}
+  }
+}
 
 export function listSongs(): Song[] {
   return db.prepare('SELECT * FROM songs ORDER BY title COLLATE NOCASE').all().map(toSong)
@@ -133,12 +147,12 @@ export function listSongs(): Song[] {
 export function saveSong(s: Song): Song {
   const song = { ...s, updatedAt: Date.now() }
   db.prepare(
-    `INSERT INTO songs (id, title, author, tags, slides, key, template_id, copyright, ccli, language_mode, bpm, time_signature, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO songs (id, title, author, tags, slides, key, template_id, copyright, ccli, language_mode, bpm, time_signature, arrangement, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET title=excluded.title, author=excluded.author, tags=excluded.tags,
        slides=excluded.slides, key=excluded.key, template_id=excluded.template_id, copyright=excluded.copyright,
        ccli=excluded.ccli, language_mode=excluded.language_mode, bpm=excluded.bpm, time_signature=excluded.time_signature,
-       updated_at=excluded.updated_at`
+       arrangement=excluded.arrangement, updated_at=excluded.updated_at`
   ).run(
     song.id,
     song.title,
@@ -152,6 +166,7 @@ export function saveSong(s: Song): Song {
     song.languageMode && song.languageMode !== 'both' ? song.languageMode : null,
     normalizeBpm(song.bpm) ?? null,
     normalizeTimeSignature(song.timeSignature) ?? null,
+    song.arrangement?.length ? JSON.stringify({ order: song.arrangement, ...(song.cues ? { cues: song.cues } : {}) }) : null,
     song.updatedAt
   )
   return song

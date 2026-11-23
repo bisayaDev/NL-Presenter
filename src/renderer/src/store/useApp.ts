@@ -28,7 +28,7 @@ import type {
   CopyrightSettings
 } from '@shared/types'
 import { hasChords, stripChords } from '@shared/chords'
-import type { BeatPulse } from '@shared/types'
+import type { BackgroundCue, BeatPulse } from '@shared/types'
 import { beatsPerBar, type StageTempo } from '@shared/tempo'
 import { languageText, plainLanguages, splitLanguages } from '@shared/bilingual'
 import { labelColor, labelKey } from '@shared/labels'
@@ -37,7 +37,7 @@ import { BUILTIN_TEMPLATES } from '@/lib/templates'
 import { DEFAULT_TRANSITION, applyVideoCommand, probeDuration, videoEnded, type VideoCommand } from '@/lib/video'
 import { mediaUrl } from '@/lib/media'
 import { addToHistory, passageSlides, passageTitle } from '@/lib/passages'
-import { arrangeSlides } from '@/lib/arrangement'
+import { arrangeSlides, usedCues } from '@/lib/arrangement'
 import { DEFAULT_BG, DEFAULT_STYLE, SEED_SCRIPTURE, SEED_SONGS, uid } from '@/lib/defaults'
 import { baseName, datedName, nextSunday, parseDay, today } from '@/lib/serviceDates'
 import { DEFAULT_TICKER_OPTIONS, queueTicker, restoreTickerOptions, startTicker, type QueuedTicker, type TickerOptions } from '@/lib/ticker'
@@ -164,7 +164,18 @@ interface AppState {
   /** Planned length of an item (undefined = none). */
   setItemMinutes: (itemId: string, minutes: number | undefined) => void
   /** Song section order for this service item (undefined = song order). Slides are rebuilt from the library song. */
-  setItemArrangement: (itemId: string, arrangement: string[] | undefined) => void
+  /** `cues`: the background slides the arrangement places. Undefined arrangement: follow the song's saved one. */
+  setItemArrangement: (itemId: string, arrangement: string[] | undefined, cues?: Record<string, BackgroundCue>) => void
+  /** "Save to song": the item's arrangement and background slides become the song's, for every later service. */
+  saveArrangementToSong: (itemId: string) => Promise<void>
+  /** Forget the song's saved arrangement (back to the song order). */
+  clearSongArrangement: (songId: string) => Promise<void>
+  /**
+   * Slide-grid menu: change one slide's text, insert a blank slide after it, duplicate it, or delete it. Song slides
+   * change the library song (every repeat, every service); a background slide can only be removed. Returns the new
+   * slide's index for insert and duplicate.
+   */
+  editSlide: (itemId: string, index: number, op: SlideOp) => Promise<number | null>
 
   hydrate: () => Promise<void>
   setTab: (t: Tab) => void
@@ -336,7 +347,7 @@ const songToItem = (s: Song): ServiceItem => ({
   ...(s.templateId ? { templateId: s.templateId } : {}),
   ...(s.languageMode && s.languageMode !== 'both' ? { languageMode: s.languageMode } : {}),
   ...songTempo(s),
-  slides: arrangeSlides(s.slides).slides
+  slides: arrangeSlides(s.slides, s.arrangement, s.cues).slides
 })
 
 /** A song's tempo fields for its service items (both keys present, so a removed tempo is cleared on update). */
@@ -345,8 +356,9 @@ const songTempo = (s: Pick<Song, 'bpm' | 'timeSignature'>): Pick<ServiceItem, 'b
 
 /** A song item's slides from the library song, in the item's arrangement (labels the song lost are dropped). */
 function arrangedItem<T extends ServiceItem>(it: T, song: Song): T {
-  if (!it.arrangement?.length) return { ...it, slides: arrangeSlides(song.slides).slides }
-  const r = arrangeSlides(song.slides, it.arrangement)
+  // No arrangement of its own: the song's saved one (background slides too), else the song order.
+  if (!it.arrangement?.length) return { ...it, slides: arrangeSlides(song.slides, song.arrangement, song.cues).slides }
+  const r = arrangeSlides(song.slides, it.arrangement, it.cues)
   const missing = [...(it.arrangementMissing ?? []), ...r.missing]
   return { ...it, slides: r.slides, arrangement: r.arrangement, arrangementMissing: missing.length ? missing : undefined }
 }
@@ -723,9 +735,7 @@ export const useApp = create<AppState>()((set, get) => ({
             }
           : it
       )
-      const liveItem = s.live && items.find((i) => i.id === s.live!.itemId)
-      const live = s.live && liveItem && s.live.index >= liveItem.slides.length ? null : s.live
-      return { songs, service: { ...s.service, items }, live }
+      return { songs, service: { ...s.service, items }, live: keepPointer(s.live, s.service.items, items), cue: keepPointer(s.cue, s.service.items, items) }
     })
     return saved
   },
@@ -780,17 +790,104 @@ export const useApp = create<AppState>()((set, get) => ({
       }
     })),
 
-  setItemArrangement: (itemId, arrangement) =>
+  setItemArrangement: (itemId, arrangement, cues) =>
     set((s) => {
       const it = s.service.items.find((x) => x.id === itemId)
       const song = it?.kind === 'song' && it.sourceId ? s.songs.find((x) => x.id === it.sourceId) : undefined
       if (!it || !song) return {}
       // Editing the arrangement clears the "labels missing" warning.
-      const next = arrangedItem({ ...it, arrangement: arrangement?.length ? arrangement : undefined, arrangementMissing: undefined }, song)
+      const own = arrangement?.length ? arrangement : undefined
+      const next = arrangedItem({ ...it, arrangement: own, cues: usedCues(own, cues), arrangementMissing: undefined }, song)
       const items = s.service.items.map((x) => (x.id === itemId ? next : x))
       const live = s.live?.itemId === itemId && s.live.index >= next.slides.length ? { itemId, index: next.slides.length - 1 } : s.live
       return { service: { ...s.service, items }, live }
     }),
+
+  saveArrangementToSong: async (itemId) => {
+    const s = get()
+    const it = s.service.items.find((x) => x.id === itemId)
+    const song = it?.kind === 'song' && it.arrangement?.length ? s.songs.find((x) => x.id === it.sourceId) : undefined
+    if (!it || !song) return
+    // The item follows the song from now on; saveSong rebuilds it (and every other copy that has no own order).
+    set((st) => ({
+      service: { ...st.service, items: st.service.items.map((x) => (x.id === itemId ? { ...x, arrangement: undefined, cues: undefined, arrangementMissing: undefined } : x)) }
+    }))
+    await get().saveSong({ ...song, arrangement: it.arrangement, cues: usedCues(it.arrangement, it.cues) })
+  },
+
+  editSlide: async (itemId, index, op) => {
+    const s = get()
+    const it = s.service.items.find((x) => x.id === itemId)
+    const sl = it?.slides[index]
+    if (!it || !sl) return null
+    const song = it.kind === 'song' && it.sourceId ? s.songs.find((x) => x.id === it.sourceId) : undefined
+
+    // A background slide: change its background or remove it (in the item's own order, else the song's saved one).
+    if (sl.cue) {
+      if ((op.kind !== 'delete' && op.kind !== 'background') || !song) return null
+      const id = sl.id.replace(/^cue-/, '')
+      const entry = `@cue:${id}`
+      if (op.kind === 'background') {
+        if (it.arrangement?.length && it.cues?.[id]) {
+          get().setItemArrangement(itemId, it.arrangement, { ...it.cues, [id]: { ...it.cues[id], background: op.background } })
+        } else if (song.arrangement && song.cues?.[id]) {
+          await get().saveSong({ ...song, cues: { ...song.cues, [id]: { ...song.cues[id], background: op.background } } })
+        }
+        return null
+      }
+      if (it.arrangement?.length) {
+        get().setItemArrangement(itemId, it.arrangement.filter((n) => n !== entry), it.cues)
+      } else if (song.arrangement) {
+        const order = song.arrangement.filter((n) => n !== entry)
+        await get().saveSong({ ...song, arrangement: order.length ? order : undefined, cues: usedCues(order, song.cues) })
+      }
+      return null
+    }
+
+    if (op.kind === 'background') return null
+    if (song) {
+      const at = song.slides.findIndex((x) => x.id === baseSlideId(sl.id))
+      if (at < 0) return null
+      const base = song.slides[at]
+      const slides = [...song.slides]
+      let added: Slide | null = null
+      if (op.kind === 'text') slides[at] = { ...base, text: op.text }
+      else if (op.kind === 'delete') {
+        if (slides.length < 2) return null
+        slides.splice(at, 1)
+      } else {
+        // Same label, so the new slide stays in its section.
+        added = op.kind === 'insert' ? { id: uid(), ...(base.label ? { label: base.label } : {}), text: '' } : { ...base, id: uid() }
+        slides.splice(at + 1, 0, added)
+      }
+      await get().saveSong({ ...song, slides })
+      if (!added) return null
+      const now = get().service.items.find((x) => x.id === itemId)
+      const i = now?.slides.findIndex((x) => x.id === added!.id) ?? -1
+      return i >= 0 ? i : null
+    }
+
+    const slides = [...it.slides]
+    let addedAt: number | null = null
+    if (op.kind === 'text') slides[index] = { ...sl, text: op.text }
+    else if (op.kind === 'delete') {
+      if (slides.length < 2) return null
+      slides.splice(index, 1)
+    } else {
+      slides.splice(index + 1, 0, op.kind === 'insert' ? { id: uid(), text: '' } : { ...sl, id: uid() })
+      addedAt = index + 1
+    }
+    set((st) => {
+      const items = st.service.items.map((x) => (x.id === itemId ? { ...x, slides } : x))
+      return { service: { ...st.service, items }, live: keepPointer(st.live, st.service.items, items), cue: keepPointer(st.cue, st.service.items, items) }
+    })
+    return addedAt
+  },
+
+  clearSongArrangement: async (songId) => {
+    const song = get().songs.find((x) => x.id === songId)
+    if (song?.arrangement) await get().saveSong({ ...song, arrangement: undefined, cues: undefined })
+  },
 
   setItemTranspose: (itemId, semis) =>
     set((s) => ({
@@ -1047,8 +1144,8 @@ export const useApp = create<AppState>()((set, get) => ({
         slides: song ? song.slides.map((sl) => ({ ...sl })) : it.slides.map((sl) => ({ ...sl, id: uid() }))
       }
     }).map((it) => {
-      // Songs keep their arrangement for this service.
-      const song = it.kind === 'song' && it.arrangement && s.songs.find((x) => x.id === it.sourceId)
+      // Songs keep their arrangement for this service (or follow the song's saved one).
+      const song = it.kind === 'song' && s.songs.find((x) => x.id === it.sourceId)
       return song ? arrangedItem(it, song) : it
     })
     await switchService({ id: uid(), name: datedName(baseName(src.name), date), date, items }, true)
@@ -1120,8 +1217,16 @@ export function slideBackground(
   fallback: Background,
   fits?: Record<string, MediaFit>
 ): Background {
-  const bg = slide?.background ?? item?.background ?? fallback
+  const bg = slide?.background ?? cueBackground(slide, item) ?? item?.background ?? fallback
   return fits ? fitted(bg, fits) : bg
+}
+
+/** Songs: the background of the last background slide at or before this one (it stays until the next one). */
+function cueBackground(slide: Slide | null | undefined, item: ServiceItem | null | undefined): Background | undefined {
+  if (!slide || item?.kind !== 'song' || !item.slides.some((sl) => sl.cue)) return undefined
+  const at = item.slides.findIndex((sl) => sl.id === slide.id)
+  for (let i = at; i >= 0; i--) if (item.slides[i].cue) return item.slides[i].background
+  return undefined
 }
 
 /** A picture or video with the Media tab's fit for that file (same object when nothing changes). */
@@ -1501,6 +1606,26 @@ function startAutoAdvance(): void {
 }
 
 type S = AppState
+
+export type SlideOp = { kind: 'text'; text: string } | { kind: 'insert' } | { kind: 'duplicate' } | { kind: 'delete' } | { kind: 'background'; background: Background }
+
+/** A song slide's id in the library song (repeats in an arrangement are "<id>~2"). */
+const baseSlideId = (id: string): string => id.replace(/~\d+$/, '')
+
+/**
+ * The live (or cued) slide after an item's slides changed: the same slide where it moved to, else the nearest one
+ * (null when the item has no slides left).
+ */
+function keepPointer<P extends { itemId: string; index: number }>(p: P | null, before: ServiceItem[], after: ServiceItem[]): P | null {
+  if (!p) return p
+  const old = before.find((i) => i.id === p.itemId)
+  const now = after.find((i) => i.id === p.itemId)
+  if (!now || old === now) return p
+  const id = old?.slides[p.index]?.id
+  const at = id ? now.slides.findIndex((sl) => sl.id === id) : -1
+  if (at >= 0) return { ...p, index: at }
+  return now.slides.length ? { ...p, index: Math.min(p.index, now.slides.length - 1) } : null
+}
 
 const findItem = (s: S, id: string): ServiceItem | undefined =>
   id === SCRATCH_ID ? s.scratch ?? undefined : s.service.items.find((i) => i.id === id)

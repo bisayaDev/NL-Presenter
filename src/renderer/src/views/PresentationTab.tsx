@@ -34,7 +34,8 @@ import LookPicker from '@/components/LookPicker'
 import LabelColorPicker from '@/components/LabelColorPicker'
 import { ClickModeToggle, ShortcutsButton } from '@/components/SpeedControls'
 import MinutesControl, { minutesText, plannedTotal } from '@/components/MinutesControl'
-import ArrangeBar, { ArrangeButton } from '@/components/ArrangeBar'
+import ArrangeBar, { ArrangeButton, BackgroundPickerDialog } from '@/components/ArrangeBar'
+import SlideMenu, { QuickEditDialog, canEditSlides } from '@/components/SlideMenu'
 import Onboarding from '@/components/Onboarding'
 import { setItemNotes } from '@/components/ItemNotes'
 import { useSmallSlides } from '@/lib/fitCheck'
@@ -434,6 +435,11 @@ function SlideArea({ styleOpen, toggleStyle }: { styleOpen: boolean; toggleStyle
   const small = useSmallSlides(item?.slides, look.style, aspect, item?.languageMode)
   const [labelPick, setLabelPick] = useState<{ label: string; x: number; y: number } | null>(null)
   const [arrangeOpen, setArrangeOpen] = useState(false)
+  // Right-click menu on a slide, and the slide open in Quick Edit (by index in the selected item).
+  const [slideMenu, setSlideMenu] = useState<{ index: number; x: number; y: number } | null>(null)
+  const [quickEdit, setQuickEdit] = useState<number | null>(null)
+  const [bgPick, setBgPick] = useState<number | null>(null)
+  const editable = canEditSlides(item)
   const canArrange = item?.kind === 'song' && !!item.sourceId && state.songs.some((x) => x.id === item.sourceId)
   const { t, tn } = useT()
 
@@ -509,6 +515,11 @@ function SlideArea({ styleOpen, toggleStyle }: { styleOpen: boolean; toggleStyle
                   key={sl.id}
                   onClick={() => (state.clickMode === 'preview' ? state.setCue(item.id, i) : goLive(item.id, i))}
                   onDoubleClick={() => state.clickMode === 'preview' && state.takeCue()}
+                  onContextMenu={(e) => {
+                    if (!editable) return
+                    e.preventDefault()
+                    setSlideMenu({ index: i, x: e.clientX, y: e.clientY })
+                  }}
                   className={`group relative overflow-hidden rounded-lg text-left ring-2 transition ${
                     isLive ? 'ring-live' : isCued ? 'ring-amber-400' : 'ring-transparent hover:ring-accent/60'
                   }`}
@@ -574,6 +585,20 @@ function SlideArea({ styleOpen, toggleStyle }: { styleOpen: boolean; toggleStyle
           <div className="grid h-full place-items-center text-muted">{t('presentation.emptyStart')}</div>
         )}
         {labelPick && <LabelColorPicker label={labelPick.label} at={labelPick} onClose={() => setLabelPick(null)} />}
+        {item && editable && slideMenu && (
+          <SlideMenu item={item} index={slideMenu.index} at={slideMenu} onClose={() => setSlideMenu(null)} onQuickEdit={setQuickEdit} onChangeBackground={setBgPick} />
+        )}
+        {item && editable && bgPick !== null && item.slides[bgPick]?.cue && (
+          <BackgroundPickerDialog
+            current={item.slides[bgPick].background}
+            onClose={() => setBgPick(null)}
+            onPick={(background) => {
+              useApp.getState().editSlide(item.id, bgPick, { kind: 'background', background })
+              setBgPick(null)
+            }}
+          />
+        )}
+        {item && editable && quickEdit !== null && <QuickEditDialog key={`${item.id}-${quickEdit}`} item={item} index={quickEdit} onClose={() => setQuickEdit(null)} />}
       </div>
 
       <div className="relative flex h-14 shrink-0 items-center justify-center gap-4 border-t border-line">
