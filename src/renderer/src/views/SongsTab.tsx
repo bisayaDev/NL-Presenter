@@ -9,6 +9,7 @@ import FindSongDialog from '@/components/FindSongDialog'
 import { NoSongMatch } from '@/components/EmptyStates'
 import { parseDay, today } from '@/lib/serviceDates'
 import { getLocale, tn, useT } from '@/i18n'
+import { isMac } from '@/components/CommandPalette'
 import { songToText } from '@/lib/songText'
 import { fileToSong } from '@/lib/songImport'
 import { findTemplate, itemLook, useApp } from '@/store/useApp'
@@ -89,6 +90,7 @@ export default function SongsTab() {
   // Selected song (preview pane) and keyboard: ↑/↓ move, Enter adds, E edits, Del deletes.
   const [selId, setSelId] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const searchInput = useRef<HTMLInputElement>(null)
   const selected = shown.find((s) => s.id === selId) ?? null
   const select = (id: string | null): void => {
     setSelId(id)
@@ -147,12 +149,26 @@ export default function SongsTab() {
     return () => window.removeEventListener('keydown', onKey)
   })
 
+  // Cmd/Ctrl+F jumps to the search.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (modalBlocks(e) || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return
+      if (e.code !== 'KeyF' && e.key.toLowerCase() !== 'f') return
+      e.preventDefault()
+      searchInput.current?.focus()
+      searchInput.current?.select()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-line p-3">
         <div className="flex flex-1 items-center gap-2 rounded-md bg-panel-2 px-3 ring-accent/50 focus-within:ring-1">
           <Search size={15} className="text-muted" />
           <input
+            ref={searchInput}
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -169,7 +185,7 @@ export default function SongsTab() {
               }
             }}
             data-tab-search="songs"
-            placeholder={t('songs.searchPlaceholder')}
+            placeholder={`${t('songs.searchPlaceholder')}  ${isMac ? '⌘F' : 'Ctrl+F'}`}
             className="h-9 flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-dim"
           />
           {q && (

@@ -10,6 +10,7 @@ import { uid } from '@/lib/defaults'
 import { modalBlocks, useModal } from '@/lib/modal'
 import { useApp } from '@/store/useApp'
 import { useT } from '@/i18n'
+import { isMac } from '@/components/CommandPalette'
 
 type Testament = 'all' | 'ot' | 'nt'
 
@@ -36,6 +37,7 @@ export default function ScriptureTab() {
   // Compare translations: this chapter in each (book name in that translation, verses).
   const [pData, setPData] = useState<{ id: string; bookName?: string; verses: Verse[] }[]>([])
   const verseList = useRef<HTMLDivElement>(null)
+  const bookFilterInput = useRef<HTMLInputElement>(null)
 
   const bible = bibles.find((b) => b.id === bibleId) ?? bibles[0]
   const bookInfo = books.find((b) => b.book === book)
@@ -187,11 +189,17 @@ export default function ScriptureTab() {
   const selPassage = passageOf(selected)
   const selPinned = !!selPassage && pins.some((p) => p.id === selPassage.id)
 
-  // Enter shows the selection live (when not typing in a field).
+  // Enter shows the selection live (when not typing in a field). Cmd/Ctrl+F jumps to "Filter books…".
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       const el = e.target as HTMLElement
       if (modalBlocks(e)) return
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.code === 'KeyF' || e.key.toLowerCase() === 'f')) {
+        e.preventDefault()
+        bookFilterInput.current?.focus()
+        bookFilterInput.current?.select()
+        return
+      }
       if (e.key === 'Enter' && !['INPUT', 'TEXTAREA'].includes(el.tagName) && selected.length) {
         e.preventDefault()
         showLive()
@@ -269,9 +277,16 @@ export default function ScriptureTab() {
         <div className="flex w-56 shrink-0 flex-col border-r border-line">
           <div className="p-2">
             <input
+              ref={bookFilterInput}
               value={bookFilter}
               onChange={(e) => setBookFilter(e.target.value)}
-              placeholder={t('scripture.filterBooks')}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setBookFilter('')
+                  e.currentTarget.blur()
+                }
+              }}
+              placeholder={`${t('scripture.filterBooks')}  ${isMac ? '⌘F' : 'Ctrl+F'}`}
               className="h-8 w-full rounded-md bg-panel-2 px-2.5 text-[12.5px] outline-none placeholder:text-dim focus:ring-1 focus:ring-accent/50"
             />
             <div className="mt-2 flex gap-1 text-[11.5px]">
