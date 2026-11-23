@@ -106,17 +106,35 @@ export function StageBeatPips({ tempo, offset }: { tempo: StageTempo; offset: nu
   )
 }
 
-/** A thin frame round the whole stage screen that flashes on each beat (amber and brighter on beat 1). For drummers. */
+/** Frame light: bright on the beat, easing out over half of it (a quarter beat was too quick to see at speed). */
+const frameGlow = (frac: number): number => {
+  const x = Math.max(0, 1 - frac * 2)
+  return x * x
+}
+
+/**
+ * A frame round the whole stage screen that flashes on each beat (amber and brighter on beat 1). For drummers, so it
+ * has to read from behind a kit: a thick border with a glow inward, and a faint resting frame between beats.
+ */
 export function StageEdgeFlash({ tempo, offset }: { tempo: StageTempo; offset: number }) {
   const reduced = useReducedMotion()
   const el = useRef<HTMLDivElement>(null)
   useBeatFrames(tempo, offset, (beat, frac) => {
     if (!el.current || reduced) return
-    const g = glow(frac)
+    const g = frameGlow(frac)
     const down = beat === 0
-    el.current.style.opacity = (g * (down ? 1 : 0.6)).toFixed(3)
-    el.current.style.borderColor = `rgb(${down ? DOWNBEAT : BEAT})`
+    const rgb = down ? DOWNBEAT : BEAT
+    const a = 0.12 + g * (down ? 0.88 : 0.68)
+    el.current.style.borderColor = `rgb(${rgb} / ${a.toFixed(3)})`
+    el.current.style.boxShadow = g > 0.01 ? `inset 0 0 ${u(4 * g)} rgb(${rgb} / ${(0.6 * g).toFixed(3)})` : 'none'
   })
   if (reduced) return null
-  return <div ref={el} aria-hidden className="pointer-events-none absolute inset-0 z-[5]" style={{ borderStyle: 'solid', borderWidth: u(0.9), opacity: 0 }} />
+  return (
+    <div
+      ref={el}
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-[5]"
+      style={{ borderStyle: 'solid', borderWidth: u(1.6), borderColor: `rgb(${BEAT} / 0.12)` }}
+    />
+  )
 }
