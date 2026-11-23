@@ -19,7 +19,7 @@ const u = (n: number): string => `calc(var(--u) * ${n})`
 
 /** Presentation page picture of a slide, if it is one. */
 const pageOf = (sl: Slide | null): string | null =>
-  sl && !sl.text && sl.background?.kind === 'image' && sl.background.fit === 'contain' ? mediaUrl(sl.background.src) : null
+  sl && !sl.text && !sl.cue && sl.background?.kind === 'image' && sl.background.fit === 'contain' ? mediaUrl(sl.background.src) : null
 
 /**
  * Largest text size per layout at 100%, in u. Long text still shrinks to fit. 100% is the original look (short

@@ -173,6 +173,8 @@ export default function SongEditor() {
       languageMode: languageMode !== 'both' ? languageMode : undefined,
       bpm: normalizeBpm(bpm),
       timeSignature: timeSignature || undefined,
+      // The saved arrangement and its background slides stay (sections it names that are gone are skipped).
+      ...(original?.arrangement ? { arrangement: original.arrangement, cues: original.cues } : {}),
       updatedAt: Date.now()
     }
     await useApp.getState().saveSong(song)
