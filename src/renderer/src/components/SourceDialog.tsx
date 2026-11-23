@@ -216,7 +216,7 @@ export default function SourceDialog({ kind, edit, onClose }: { kind: SourceKind
 }
 
 /** Ask for camera access once, then list video inputs (labels are only visible after access). */
-function useCameras(enabled: boolean): { state: 'loading' | 'ready' | 'denied'; list: MediaDeviceInfo[]; refresh: () => void } {
+export function useCameras(enabled: boolean): { state: 'loading' | 'ready' | 'denied'; list: MediaDeviceInfo[]; refresh: () => void } {
   const [state, setState] = useState<'loading' | 'ready' | 'denied'>('loading')
   const [list, setList] = useState<MediaDeviceInfo[]>([])
   const [n, setN] = useState(0)

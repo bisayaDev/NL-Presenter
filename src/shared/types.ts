@@ -57,7 +57,8 @@ export type Background =
   /** A website or vdo.ninja feed, drawn at the projector's resolution. */
   | { kind: 'web'; url: string; muted?: boolean }
   /** A webcam, USB camera or capture card on the presentation computer. */
-  | { kind: 'camera'; deviceId: string; label?: string; muted?: boolean }
+  /** `look`: that camera's framing and colour, filled in when the frame is built (saved per camera, see CameraLook). */
+  | { kind: 'camera'; deviceId: string; label?: string; muted?: boolean; look?: CameraLook }
   /** An animated CSS background loop. The definition travels with it so every screen can draw it. */
   | { kind: 'loop'; id: string; name: string; def: LoopDefinition }
 
@@ -347,6 +348,42 @@ export interface CountdownState {
 }
 
 /** Everything an output screen needs to draw one frame. */
+/** How a camera's picture is framed and coloured. Saved per camera (by device id) and used wherever it shows. */
+export interface CameraLook {
+  zoom: number // 1 = the whole frame, up to 4
+  x: number // zoom centre, 0 (left) – 1 (right)
+  y: number // zoom centre, 0 (top) – 1 (bottom)
+  fit: 'cover' | 'contain'
+  mirror: boolean
+  flip: boolean // upside down (turned 180°)
+  brightness: number // 100 = as captured
+  contrast: number
+  saturation: number
+  warmth: number // -100 cool … 0 … 100 warm
+  grayscale: boolean
+  blur: number // px on the 1920-wide stage
+}
+
+/** Camera overlay over whatever is live: a box in a corner, half the screen beside the words, or behind them. */
+export type CameraLayout = 'pip' | 'side' | 'behind'
+export type Corner = 'tl' | 'tr' | 'bl' | 'br'
+
+export interface CameraOverlay {
+  on: boolean
+  deviceId: string
+  label?: string
+  layout: CameraLayout
+  corner: Corner
+  size: number // corner box width, % of the screen width
+  side: 'left' | 'right'
+  rounded: boolean
+  border: boolean
+  sound: boolean
+}
+
+/** The overlay as screens draw it (only while it is on). */
+export type CameraOverlayFrame = Omit<CameraOverlay, 'on'> & { look?: CameraLook }
+
 export interface LiveFrame {
   slide: Slide | null
   background: Background
@@ -366,6 +403,8 @@ export interface LiveFrame {
   footer?: string | null
   /** Announcement along the bottom (scrolling ticker or static band) while one is playing. */
   ticker?: TickerMessage | null
+  /** Camera overlay while it is on (screens this computer drives only). */
+  camera?: CameraOverlayFrame | null
 }
 
 /** Audience announcement ("Parent of child #12, please come to the nursery"). Times are epoch ms, so every screen agrees. */

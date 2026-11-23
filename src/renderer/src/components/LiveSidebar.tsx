@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Drama, EyeOff, Metronome, MonitorOff, Timer, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Drama, EyeOff, Metronome, MonitorOff, Settings2, Timer, Video, X } from 'lucide-react'
+import CameraDialog from './CameraDialog'
 import SlideView from './SlideView'
 import CuePreview from './CuePreview'
 import ServiceTimers from './ServiceTimers'
@@ -123,6 +124,7 @@ export default function LiveSidebar() {
             <ChevronRight size={17} />
           </CtlButton>
         </div>
+        <CameraRow />
         {showMetro && <MetronomeControl />}
       </div>
 
@@ -183,6 +185,37 @@ export default function LiveSidebar() {
         <span className="text-[11px] text-dim">{state.aspect}</span>
       </div>
     </aside>
+  )
+}
+
+/** Camera overlay on/off over whatever is live, and its settings. */
+function CameraRow() {
+  const cam = useApp((s) => s.cameraOverlay)
+  const [open, setOpen] = useState(false)
+  const { t } = useT()
+  return (
+    <div className="mt-1.5 flex gap-1.5">
+      <button
+        onClick={() => (cam.deviceId ? useApp.getState().setCameraOverlay({ on: !cam.on }) : setOpen(true))}
+        title={cam.on ? t('live.camera.onHint') : t('live.camera.offHint')}
+        aria-pressed={cam.on}
+        className={`flex h-8 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md text-[12px] font-medium ${
+          cam.on ? 'bg-live text-white hover:brightness-110' : 'bg-panel-2 text-muted hover:text-fg'
+        }`}
+      >
+        <Video size={14} className="shrink-0" />
+        <span className="truncate">{t('live.camera.button')}</span>
+        {cam.on && <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-white" />}
+      </button>
+      <button
+        onClick={() => setOpen(true)}
+        title={t('live.camera.settings')}
+        className="grid h-8 w-9 shrink-0 place-items-center rounded-md bg-panel-2 text-muted hover:text-fg"
+      >
+        <Settings2 size={14} />
+      </button>
+      {open && <CameraDialog onClose={() => setOpen(false)} />}
+    </div>
   )
 }
 
