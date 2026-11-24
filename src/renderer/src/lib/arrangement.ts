@@ -39,18 +39,20 @@ export const songOrder = (slides: Slide[]): string[] => songSections(slides).map
 /**
  * Expand an arrangement into slides. The n-th "Chorus" uses the song's n-th Chorus section if it has one, else the
  * first. A slide used again gets a new id (`<id>~2`), so every slide in the grid has its own key.
- * Labels the song no longer has are dropped and returned in `missing`.
+ * Labels the song no longer has are dropped and returned in `missing`. `entries[i]` is the index in the returned
+ * arrangement that slide i comes from.
  */
 export function arrangeSlides(
   slides: Slide[],
   arrangement?: string[],
   cues?: Record<string, BackgroundCue>
-): { slides: Slide[]; arrangement?: string[]; missing: string[] } {
+): { slides: Slide[]; arrangement?: string[]; missing: string[]; entries?: number[] } {
   if (!arrangement?.length) return { slides: slides.map((sl) => ({ ...sl })), missing: [] }
   const sections = songSections(slides)
   const seenName = new Map<string, number>()
   const usedSlide = new Map<string, number>()
   const out: Slide[] = []
+  const entries: number[] = []
   const kept: string[] = []
   const missing: string[] = []
   for (const name of arrangement) {
@@ -59,6 +61,7 @@ export function arrangeSlides(
       if (!cue) continue // its background is gone: drop it quietly
       kept.push(name)
       out.push({ id: `cue-${cueId(name)}`, label: cue.name, text: '', background: cue.background, cue: true })
+      entries.push(kept.length - 1)
       continue
     }
     const all = sections.filter((s) => s.name === name)
@@ -74,11 +77,12 @@ export function arrangeSlides(
       const uses = (usedSlide.get(sl.id) ?? 0) + 1
       usedSlide.set(sl.id, uses)
       out.push({ ...sl, id: uses === 1 ? sl.id : `${sl.id}~${uses}` })
+      entries.push(kept.length - 1)
     }
   }
   // No words left: fall back to the song order.
   if (!out.some((sl) => !sl.cue)) return { slides: slides.map((sl) => ({ ...sl })), missing }
-  return { slides: out, arrangement: kept, missing }
+  return { slides: out, arrangement: kept, missing, entries }
 }
 
 /** Same order as the song itself? */
