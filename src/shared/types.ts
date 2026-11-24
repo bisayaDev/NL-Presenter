@@ -638,6 +638,21 @@ export interface WebSongHit {
 
 export type WebSongSearch = { ok: true; hits: WebSongHit[] } | { ok: false; error: 'offline' | 'failed' }
 
+/** A YouTube video found from the music player's search (played through YouTube's embedded player). */
+export interface YouTubeHit {
+  videoId: string
+  title: string
+  channel: string
+  thumb?: string
+  /** Seconds (0 for live streams). */
+  duration?: number
+}
+
+export type YouTubeSearch =
+  | { ok: true; hits: YouTubeHit[] }
+  /** noKey: no API key saved; badKey: Google refused the key; quota: the key's daily searches are used up. */
+  | { ok: false; error: 'noKey' | 'badKey' | 'quota' | 'offline' | 'failed' }
+
 /** Chat between people on phone remotes and the operator. */
 export interface ChatMessage {
   id: string

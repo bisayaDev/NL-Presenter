@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ChevronDown,
   ChevronUp,
@@ -10,19 +10,23 @@ import {
   Plus,
   Repeat,
   Repeat1,
+  Search,
   Shuffle,
   SkipBack,
   SkipForward,
   Square,
   Trash2,
+  TvMinimalPlay,
   Upload,
   Volume2,
   VolumeX,
   X
 } from 'lucide-react'
 import { useApp } from '@/store/useApp'
-import { formatTime, selectTracks, usePlayer } from '@/store/usePlayer'
+import { formatTime, isYouTube, selectTracks, usePlayer } from '@/store/usePlayer'
+import { attachYouTubeFrame, embedUrl } from '@/lib/youtubeEmbed'
 import { useT } from '@/i18n'
+import YouTubeSearch from './YouTubeSearch'
 
 const REPEAT_KEY = { off: 'topbar.player.repeatOff', all: 'topbar.player.repeatAll', one: 'topbar.player.repeatOne' } as const
 
@@ -36,6 +40,7 @@ export default function AudioPlayer() {
   const media = useApp((s) => s.media)
   const importMedia = useApp((s) => s.importMedia)
   const [adding, setAdding] = useState(false)
+  const [searching, setSearching] = useState(false)
   const [muted, setMuted] = useState<number | null>(null) // volume before mute
   const box = useRef<HTMLDivElement>(null)
   const drag = useRef<{ dx: number; dy: number } | null>(null)
@@ -55,6 +60,13 @@ export default function AudioPlayer() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
+  // The window grows (a YouTube video, the search panel): pull it back up if its bottom left the screen.
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el || !p.open) return
+    const r = el.getBoundingClientRect()
+    if (r.bottom > window.innerHeight - 8) p.setPos(clamp(r.left, r.top))
+  })
 
   const onPointerDown = (e: React.PointerEvent): void => {
     if ((e.target as HTMLElement).closest('button')) return
@@ -73,7 +85,8 @@ export default function AudioPlayer() {
   return (
     <div
       ref={box}
-      className="fixed z-40 flex flex-col overflow-hidden rounded-xl border border-line bg-panel-2/95 shadow-2xl backdrop-blur"
+      // Closed while a YouTube video is loaded: hidden, not unmounted, so the video keeps playing.
+      className={`fixed z-40 flex-col overflow-hidden rounded-xl border border-line bg-panel-2/95 shadow-2xl backdrop-blur ${p.open ? 'flex' : 'hidden'}`}
       style={{ left: pos.x, top: pos.y, width: W }}
       onKeyDown={(e) => e.stopPropagation()}
     >
@@ -97,6 +110,26 @@ export default function AudioPlayer() {
           <X size={15} />
         </button>
       </div>
+
+      {/* YouTube's own player, shown while a YouTube video is the current track. */}
+      {p.ytVideo && (
+        <div className={isYouTube(p.current) ? 'relative aspect-video w-full shrink-0 bg-black' : 'hidden'}>
+          <iframe
+            key={p.ytVideo.n}
+            ref={attachYouTubeFrame}
+            src={embedUrl(p.ytVideo.videoId, p.ytVideo.autoplay)}
+            title={current?.name ?? 'YouTube'}
+            allow="autoplay; encrypted-media; picture-in-picture"
+            referrerPolicy="strict-origin-when-cross-origin"
+            className="h-full w-full border-0"
+          />
+          {p.ytError !== null && (
+            <div className="absolute inset-0 grid place-items-center bg-black/80 px-6 text-center text-[12px] text-amber-300">
+              {t('topbar.player.yt.notPlayable')}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2 px-3 py-2.5">
         <div className="truncate text-[13px] font-medium">{current?.name ?? (tracks.length ? t('topbar.player.ready') : t('topbar.player.noSongs'))}</div>
@@ -173,11 +206,28 @@ export default function AudioPlayer() {
       </div>
 
       {!p.collapsed && (
-        <div className="flex max-h-60 flex-col border-t border-line">
+        <div className={`flex flex-col border-t border-line ${searching ? 'max-h-[420px]' : 'max-h-60'}`}>
           <div className="flex h-8 shrink-0 items-center justify-between px-3">
             <span className="label-caps truncate">{t('topbar.player.playlist', { count: tracks.length })}</span>
             <div className="flex gap-0.5">
-              <Btn onClick={() => setAdding((a) => !a)} active={adding} title={t('topbar.player.addFromLibrary')}>
+              <Btn
+                onClick={() => {
+                  setSearching((v) => !v)
+                  setAdding(false)
+                }}
+                active={searching}
+                title={t('topbar.player.yt.search')}
+              >
+                <Search size={14} />
+              </Btn>
+              <Btn
+                onClick={() => {
+                  setAdding((a) => !a)
+                  setSearching(false)
+                }}
+                active={adding}
+                title={t('topbar.player.addFromLibrary')}
+              >
                 <ListPlus size={14} />
               </Btn>
               <Btn
@@ -197,6 +247,7 @@ export default function AudioPlayer() {
               )}
             </div>
           </div>
+          {searching && <YouTubeSearch />}
           {adding && (
             <div className="max-h-28 shrink-0 overflow-y-auto border-y border-line bg-panel px-1 py-1">
               {available.length === 0 ? (
@@ -216,7 +267,7 @@ export default function AudioPlayer() {
             </div>
           )}
           <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-1">
-            {tracks.length === 0 && !adding && (
+            {tracks.length === 0 && !adding && !searching && (
               <div className="px-2 py-3 text-center text-[11.5px] text-dim">{t('topbar.player.emptyHint')}</div>
             )}
             {tracks.map((t, i) => {
@@ -235,8 +286,9 @@ export default function AudioPlayer() {
                   className={`group flex items-center gap-2 rounded px-2 py-1 text-[12px] ${active ? 'bg-accent-soft text-fg' : 'text-fg/80 hover:bg-panel-3'}`}
                 >
                   <span className="w-4 text-right text-[10.5px] text-dim">{active && p.playing ? '♪' : i + 1}</span>
-                  <button onClick={() => p.playMedia(t.id)} className="min-w-0 flex-1 truncate text-left">
-                    {t.name}
+                  <button onClick={() => p.playMedia(t.id)} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
+                    {t.youtube && <TvMinimalPlay size={12} className="shrink-0 text-red-400" aria-label="YouTube" />}
+                    <span className="truncate">{t.name}</span>
                   </button>
                   <button onClick={() => p.remove(t.id)} title={removeLabel} className="text-dim opacity-0 hover:text-live group-hover:opacity-100">
                     <X size={12} />

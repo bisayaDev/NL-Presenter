@@ -26,6 +26,7 @@ import type {
   Song,
   SongText,
   WebSongSearch,
+  YouTubeSearch,
   SongUsage,
   Verse,
   VerseHit
@@ -155,6 +156,12 @@ const api = {
     import: (paths?: string[]): Promise<SongText[] | null> => ipcRenderer.invoke(IPC.songsImportTxt, paths),
     /** Lyrics search online (LRCLIB). */
     webSearch: (q: string): Promise<WebSongSearch> => ipcRenderer.invoke(IPC.songsWebSearch, q)
+  },
+  /** Music player: YouTube search (YouTube Data API; the church's own key). */
+  youtube: {
+    search: (q: string): Promise<YouTubeSearch> => ipcRenderer.invoke(IPC.youtubeSearch, q),
+    keyStatus: (): Promise<{ saved: boolean; hint: string }> => ipcRenderer.invoke(IPC.youtubeKeyGet),
+    setKey: (key: string): Promise<void> => ipcRenderer.invoke(IPC.youtubeKeySet, key)
   },
   appInfo: (): Promise<{ version: string; dataDir: string; platform: string; bibles: BibleInfo[] }> =>
     ipcRenderer.invoke(IPC.appInfo),
