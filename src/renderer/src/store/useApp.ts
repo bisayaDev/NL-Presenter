@@ -843,6 +843,22 @@ export const useApp = create<AppState>()((set, get) => ({
     if (!it || !sl) return null
     const song = it.kind === 'song' && it.sourceId ? s.songs.find((x) => x.id === it.sourceId) : undefined
 
+    if (op.kind === 'move') {
+      const to = op.to
+      if (to === index || to < 0 || to >= it.slides.length) return null
+      if (song) await moveSongSlide(get, it, song, index, to)
+      else {
+        const slides = [...it.slides]
+        const [moved] = slides.splice(index, 1)
+        slides.splice(to, 0, moved)
+        set((st) => {
+          const items = st.service.items.map((x) => (x.id === itemId ? { ...x, slides } : x))
+          return { service: { ...st.service, items }, live: keepPointer(st.live, st.service.items, items), cue: keepPointer(st.cue, st.service.items, items) }
+        })
+      }
+      return null
+    }
+
     // A background slide: change its background or remove it (in the item's own order, else the song's saved one).
     if (sl.cue) {
       if ((op.kind !== 'delete' && op.kind !== 'background') || !song) return null
@@ -1639,10 +1655,76 @@ function startAutoAdvance(): void {
 
 type S = AppState
 
-export type SlideOp = { kind: 'text'; text: string } | { kind: 'insert' } | { kind: 'duplicate' } | { kind: 'delete' } | { kind: 'background'; background: Background }
+export type SlideOp =
+  | { kind: 'text'; text: string }
+  | { kind: 'insert' }
+  | { kind: 'duplicate' }
+  | { kind: 'delete' }
+  | { kind: 'background'; background: Background }
+  /** Drag in the slide grid: the slide ends up at grid position `to`. */
+  | { kind: 'move'; to: number }
 
 /** A song slide's id in the library song (repeats in an arrangement are "<id>~2"). */
 const baseSlideId = (id: string): string => id.replace(/~\d+$/, '')
+
+/**
+ * A slide dragged in the grid of a library song. A background slide moves in the arrangement (the item's own, else
+ * the song's saved one). A lyric slide moves in the library song, next to the slide it was dropped on, and takes that
+ * slide's label, so it joins that section (and every repeat of it, in every service).
+ */
+async function moveSongSlide(get: () => S, it: ServiceItem, song: Song, from: number, to: number): Promise<void> {
+  const grid = it.slides
+  const down = to > from
+
+  if (grid[from].cue) {
+    const own = !!it.arrangement?.length
+    const r = arrangeSlides(song.slides, own ? it.arrangement : song.arrangement, own ? it.cues : song.cues)
+    if (!r.arrangement || !r.entries || r.slides.length !== grid.length) return
+    const a = r.entries[from]
+    const b = r.entries[to]
+    if (a === b) return
+    const order = [...r.arrangement]
+    const [moved] = order.splice(a, 1)
+    order.splice(b, 0, moved) // down: lands after the target's section; up: before it
+    if (own) get().setItemArrangement(it.id, order, it.cues)
+    else await get().saveSong({ ...song, arrangement: order })
+    return
+  }
+
+  // The lyric slide to sit next to: the drop target, or the nearest lyric slide past a background slide.
+  const isLyric = (j: number): boolean => j !== from && !!grid[j] && !grid[j].cue
+  const scan = (start: number, step: 1 | -1): number => {
+    for (let j = start; j >= 0 && j < grid.length; j += step) if (isLyric(j)) return j
+    return -1
+  }
+  let anchor = to
+  let after = down
+  if (!isLyric(to)) {
+    const ahead = down ? scan(to + 1, 1) : scan(to - 1, -1)
+    if (ahead >= 0) {
+      anchor = ahead
+      after = !down
+    } else {
+      anchor = down ? scan(to - 1, -1) : scan(to + 1, 1)
+      if (anchor < 0) return
+    }
+  }
+
+  const movedId = baseSlideId(grid[from].id)
+  const anchorId = baseSlideId(grid[anchor].id)
+  if (movedId === anchorId) return // a repeat of the same slide
+  const slides = [...song.slides]
+  const at = slides.findIndex((x) => x.id === movedId)
+  if (at < 0) return
+  const [moved] = slides.splice(at, 1)
+  const target = slides.findIndex((x) => x.id === anchorId)
+  if (target < 0) return
+  const label = slides[target].label
+  const { label: _old, ...rest } = moved
+  slides.splice(target + (after ? 1 : 0), 0, label ? { ...rest, label } : rest)
+  if (JSON.stringify(slides) === JSON.stringify(song.slides)) return
+  await get().saveSong({ ...song, slides })
+}
 
 /**
  * The live (or cued) slide after an item's slides changed: the same slide where it moved to, else the nearest one

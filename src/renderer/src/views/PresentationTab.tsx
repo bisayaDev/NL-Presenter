@@ -441,7 +441,10 @@ function SlideArea({ styleOpen, toggleStyle }: { styleOpen: boolean; toggleStyle
   const [slideMenu, setSlideMenu] = useState<{ index: number; x: number; y: number } | null>(null)
   const [quickEdit, setQuickEdit] = useState<number | null>(null)
   const [bgPick, setBgPick] = useState<number | null>(null)
+  // Dragging a slide to reorder: where it came from and the slide it is over.
+  const [slideDrag, setSlideDrag] = useState<{ from: number; over: number | null } | null>(null)
   const editable = canEditSlides(item)
+  const reorderable = editable && item.slides.length > 1
   const canArrange = item?.kind === 'song' && !!item.sourceId && state.songs.some((x) => x.id === item.sourceId)
   const { t, tn } = useT()
 
@@ -512,9 +515,30 @@ function SlideArea({ styleOpen, toggleStyle }: { styleOpen: boolean; toggleStyle
             {item.slides.map((sl, i) => {
               const isLive = live?.item.id === item.id && live.index === i
               const isCued = state.clickMode === 'preview' && state.cue?.itemId === item.id && state.cue.index === i
+              const dropHere = slideDrag && slideDrag.over === i && slideDrag.from !== i
               return (
                 <button
                   key={sl.id}
+                  draggable={reorderable}
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'move'
+                    e.dataTransfer.setData('text/nl-slide', String(i))
+                    setSlideDrag({ from: i, over: null })
+                  }}
+                  onDragOver={(e) => {
+                    if (!slideDrag) return
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move'
+                    if (slideDrag.over !== i) setSlideDrag({ ...slideDrag, over: i })
+                  }}
+                  onDragEnd={() => setSlideDrag(null)}
+                  onDrop={(e) => {
+                    if (!slideDrag) return
+                    e.preventDefault()
+                    const from = slideDrag.from
+                    setSlideDrag(null)
+                    if (from !== i) useApp.getState().editSlide(item.id, from, { kind: 'move', to: i })
+                  }}
                   onClick={() => (state.clickMode === 'preview' ? state.setCue(item.id, i) : goLive(item.id, i))}
                   onDoubleClick={() => state.clickMode === 'preview' && state.takeCue()}
                   onContextMenu={(e) => {
@@ -524,7 +548,7 @@ function SlideArea({ styleOpen, toggleStyle }: { styleOpen: boolean; toggleStyle
                   }}
                   className={`group relative overflow-hidden rounded-lg text-left ring-2 transition ${
                     isLive ? 'ring-live' : isCued ? 'ring-amber-400' : 'ring-transparent hover:ring-accent/60'
-                  }`}
+                  } ${slideDrag?.from === i ? 'opacity-40' : ''}`}
                 >
                   <SlideView
                     slide={audienceSlide(sl, item)}
@@ -578,6 +602,10 @@ function SlideArea({ styleOpen, toggleStyle }: { styleOpen: boolean; toggleStyle
                     <span className="absolute bottom-2 right-2 rounded bg-black/60 p-0.5 text-white/80" title={sl.notes}>
                       <StickyNote size={11} />
                     </span>
+                  )}
+                  {/* Drop marker: the side the dragged slide will land on. */}
+                  {dropHere && (
+                    <span className={`pointer-events-none absolute inset-y-0 w-1 bg-accent ${slideDrag.from < i ? 'right-0' : 'left-0'}`} />
                   )}
                 </button>
               )
