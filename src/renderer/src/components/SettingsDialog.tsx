@@ -6,6 +6,7 @@ import { ACCENT_PRESETS, applyAccent, DEFAULT_ACCENT, saveAccent, ZOOM_STEPS } f
 import { bootSettings, useApp } from '@/store/useApp'
 import { useModal } from '@/lib/modal'
 import { AutoBackupSettings, DisplaySection, MediaFitDefaultSection, QuickChatSection } from './SettingsExtras'
+import DownloadToolsSettings from './DownloadToolsSettings'
 import { LANG_OPTIONS, setLang, t, tn, useT, type Lang } from '@/i18n'
 
 type Info = { version: string; dataDir: string; platform: string; bibles: BibleInfo[] }
@@ -68,6 +69,7 @@ export default function SettingsDialog({ onClose }: { onClose: () => void }) {
           <MediaFitDefaultSection />
           <ChurchSection />
           <QuickChatSection />
+          <DownloadToolsSettings />
 
           <section>
             <div className="label-caps mb-2">{t('settings.backup.title')}</div>

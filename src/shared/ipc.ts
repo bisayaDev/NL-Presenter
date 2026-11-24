@@ -73,6 +73,15 @@ export const IPC = {
   youtubeSearch: 'youtube:search',
   youtubeKeyGet: 'youtube:key-get',
   youtubeKeySet: 'youtube:key-set',
+  youtubeDownload: 'youtube:download',
+  youtubeDownloadCancel: 'youtube:download-cancel',
+  youtubeDownloadProgress: 'youtube:download-progress', // main → operator
+  dlToolsStatus: 'dltools:status',
+  dlToolsCheck: 'dltools:check',
+  dlToolsInstall: 'dltools:install',
+  dlToolsEnable: 'dltools:enable',
+  dlToolsRemove: 'dltools:remove',
+  dlToolsChanged: 'dltools:changed', // main → operator
   appInfo: 'app:info',
   updateStatus: 'update:status',
   updateCheck: 'update:check',

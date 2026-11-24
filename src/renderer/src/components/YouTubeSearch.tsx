@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check, KeyRound, Loader2, Play, Plus, Search } from 'lucide-react'
+import { Check, Download, KeyRound, Loader2, Play, Plus, Search, TriangleAlert } from 'lucide-react'
 import type { YouTubeHit, YouTubeSearch as Result } from '@shared/types'
 import { formatTime, usePlayer, ytId } from '@/store/usePlayer'
+import { useDownloads } from '@/store/useDownloads'
 import { useT } from '@/i18n'
 
 const KEY_HELP = 'https://developers.google.com/youtube/v3/getting-started'
@@ -135,6 +136,7 @@ function Hit({ hit }: { hit: YouTubeHit }) {
         </div>
         <div className="truncate text-[10.5px] text-dim">{hit.channel}</div>
       </div>
+      <DownloadButton hit={hit} />
       <button
         onClick={() => addYouTube([hit])}
         disabled={inList}
@@ -193,5 +195,47 @@ function KeySetup({ canCancel, onCancel, onSaved }: { canCancel: boolean; onCanc
       </form>
       <p className="text-[10.5px] text-dim">{t('topbar.player.yt.quotaNote')}</p>
     </div>
+  )
+}
+
+/**
+ * Save a YouTube video's audio as MP3 (only when YouTube downloads are on in Settings and the tools are there).
+ * While it runs it shows the progress; click to cancel. A failure shows a warning; click to dismiss it.
+ */
+export function DownloadButton({ hit }: { hit: YouTubeHit }) {
+  const { t } = useT()
+  const ready = useDownloads((s) => s.ready())
+  const job = useDownloads((s) => s.jobs[hit.videoId])
+  if (!ready && !job) return null
+  const base = 'grid h-6 shrink-0 place-items-center rounded px-1 text-[10px] tabular-nums'
+  if (job && 'error' in job) {
+    return (
+      <button
+        onClick={() => useDownloads.getState().dismiss(hit.videoId)}
+        title={job.error === 'blocked' ? t('topbar.player.dl.blocked') : t('topbar.player.dl.failed', { msg: job.message ?? job.error })}
+        className={`${base} w-6 text-amber-300 hover:bg-panel-2`}
+      >
+        <TriangleAlert size={13} />
+      </button>
+    )
+  }
+  if (job)
+    return (
+      <button
+        onClick={() => useDownloads.getState().cancel(hit.videoId)}
+        title={job.stage === 'convert' || job.pct >= 100 ? t('topbar.player.dl.converting') : t('topbar.player.dl.progress', { pct: job.pct })}
+        className={`${base} min-w-6 text-accent-text hover:bg-panel-2`}
+      >
+        {job.stage === 'convert' || job.pct >= 100 ? <Loader2 size={13} className="animate-spin" /> : `${job.pct}%`}
+      </button>
+    )
+  return (
+    <button
+      onClick={() => useDownloads.getState().download(hit)}
+      title={t('topbar.player.dl.download')}
+      className={`${base} w-6 text-muted hover:bg-panel-2 hover:text-accent-text`}
+    >
+      <Download size={13} />
+    </button>
   )
 }

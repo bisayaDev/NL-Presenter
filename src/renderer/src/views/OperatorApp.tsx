@@ -16,6 +16,7 @@ import QuickKeys from '@/components/QuickKeys'
 import RehearsalBar from '@/components/RehearsalBar'
 import ResumeBanner from '@/components/ResumeBanner'
 import { usePlayer } from '@/store/usePlayer'
+import { initDownloads } from '@/store/useDownloads'
 import { applyAccent } from '@/lib/appearance'
 import { modalBlocks } from '@/lib/modal'
 import { onLangChange, getLang, t, useT } from '@/i18n'
@@ -136,6 +137,7 @@ export default function OperatorApp() {
     useApp.getState().hydrate().then(() => {
       applyAccent(bootSettings.accent)
       usePlayer.getState().hydrate(bootSettings.player)
+      initDownloads()
     })
   }, [])
   useLiveSync()
