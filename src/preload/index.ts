@@ -27,6 +27,9 @@ import type {
   SongText,
   WebSongSearch,
   YouTubeSearch,
+  YouTubeDownloadProgress,
+  YouTubeDownloadResult,
+  DownloadToolsStatus,
   SongUsage,
   Verse,
   VerseHit
@@ -161,7 +164,20 @@ const api = {
   youtube: {
     search: (q: string): Promise<YouTubeSearch> => ipcRenderer.invoke(IPC.youtubeSearch, q),
     keyStatus: (): Promise<{ saved: boolean; hint: string }> => ipcRenderer.invoke(IPC.youtubeKeyGet),
-    setKey: (key: string): Promise<void> => ipcRenderer.invoke(IPC.youtubeKeySet, key)
+    setKey: (key: string): Promise<void> => ipcRenderer.invoke(IPC.youtubeKeySet, key),
+    /** Save a video's audio as MP3 into the media library (optional feature; tools downloaded on demand). */
+    download: (videoId: string, title: string): Promise<YouTubeDownloadResult> => ipcRenderer.invoke(IPC.youtubeDownload, videoId, title),
+    cancelDownload: (videoId: string): Promise<void> => ipcRenderer.invoke(IPC.youtubeDownloadCancel, videoId),
+    onDownloadProgress: (cb: (p: YouTubeDownloadProgress) => void) => subscribe(IPC.youtubeDownloadProgress, cb),
+    /** The downloaded yt-dlp and ffmpeg: on/off, install, update, remove. */
+    tools: {
+      status: (): Promise<DownloadToolsStatus> => ipcRenderer.invoke(IPC.dlToolsStatus),
+      check: (): Promise<DownloadToolsStatus> => ipcRenderer.invoke(IPC.dlToolsCheck),
+      install: (): Promise<DownloadToolsStatus> => ipcRenderer.invoke(IPC.dlToolsInstall),
+      setEnabled: (on: boolean): Promise<DownloadToolsStatus> => ipcRenderer.invoke(IPC.dlToolsEnable, on),
+      remove: (): Promise<DownloadToolsStatus> => ipcRenderer.invoke(IPC.dlToolsRemove),
+      onChange: (cb: (s: DownloadToolsStatus) => void) => subscribe(IPC.dlToolsChanged, cb)
+    }
   },
   appInfo: (): Promise<{ version: string; dataDir: string; platform: string; bibles: BibleInfo[] }> =>
     ipcRenderer.invoke(IPC.appInfo),

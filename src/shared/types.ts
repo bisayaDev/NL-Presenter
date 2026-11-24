@@ -648,6 +648,33 @@ export interface YouTubeHit {
   duration?: number
 }
 
+export type ToolName = 'ytdlp' | 'ffmpeg'
+
+/** Optional YouTube → MP3 downloads: whether they are on, and the downloaded tools' versions. */
+export interface DownloadToolsStatus {
+  enabled: boolean
+  /** Both tools have a build for this computer. */
+  supported: boolean
+  tools: Record<ToolName, { installed: string | null; latest: string | null }>
+  /** When the newest versions were last looked up (ms). */
+  checkedAt: number | null
+  /** A tool being downloaded. */
+  busy: { tool: ToolName; pct: number } | null
+  /** 'offline', or what went wrong with the last check or download. */
+  error: string | null
+}
+
+export interface YouTubeDownloadProgress {
+  videoId: string
+  stage: 'download' | 'convert'
+  pct: number
+}
+
+export type YouTubeDownloadResult =
+  | { ok: true; media: MediaItem }
+  /** off: downloads are off or the tools are missing; blocked: YouTube refused (sign-in, age check). */
+  | { ok: false; error: 'off' | 'busy' | 'cancelled' | 'blocked' | 'failed'; message?: string }
+
 export type YouTubeSearch =
   | { ok: true; hits: YouTubeHit[] }
   /** noKey: no API key saved; badKey: Google refused the key; quota: the key's daily searches are used up. */

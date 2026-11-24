@@ -17,6 +17,16 @@ import { bibleCatalog, initBibleLibrary, installLibraryBible } from './bibleLibr
 import { searchWebSongs } from './songSearch'
 import { identifyToYouTube, searchYouTube } from './youtube'
 import {
+  cancelDownload,
+  checkForToolUpdates,
+  downloadAudio,
+  initDownloadTools,
+  installTools,
+  removeTools,
+  setDownloadsEnabled,
+  toolsStatus
+} from './downloadTools'
+import {
   AUDIO_EXT,
   deleteMedia,
   IMAGE_EXT,
@@ -457,6 +467,19 @@ function registerIpc(): void {
   ipcMain.handle(IPC.youtubeSearch, (_e, q: string) => searchYouTube(String(q ?? ''), youtubeKey()))
   ipcMain.handle(IPC.youtubeKeyGet, () => ({ saved: !!youtubeKey(), hint: youtubeKey().slice(-4) }))
   ipcMain.handle(IPC.youtubeKeySet, (_e, key: string) => db.setSetting('youtubeKey', String(key ?? '').trim()))
+  // Optional YouTube → MP3 downloads (tools fetched on demand; see downloadTools.ts).
+  ipcMain.handle(IPC.dlToolsStatus, () => toolsStatus())
+  ipcMain.handle(IPC.dlToolsCheck, () => checkForToolUpdates())
+  ipcMain.handle(IPC.dlToolsInstall, () => {
+    void installTools() // progress arrives as dlToolsChanged
+    return toolsStatus()
+  })
+  ipcMain.handle(IPC.dlToolsEnable, (_e, on: boolean) => setDownloadsEnabled(on === true))
+  ipcMain.handle(IPC.dlToolsRemove, () => removeTools())
+  ipcMain.handle(IPC.youtubeDownload, (_e, videoId: string, title: string) =>
+    downloadAudio(String(videoId ?? ''), String(title ?? ''), (p) => sendOperator(IPC.youtubeDownloadProgress, p))
+  )
+  ipcMain.handle(IPC.youtubeDownloadCancel, (_e, videoId: string) => cancelDownload(String(videoId ?? '')))
   ipcMain.handle(IPC.updateStatus, () => updateStatus())
   ipcMain.handle(IPC.updateCheck, () => checkForUpdate())
   ipcMain.handle(IPC.updateOpen, () => {
@@ -605,6 +628,9 @@ app.whenReady().then(async () => {
   identifyToYouTube('com.nlpresenter.app')
   registerIpc()
   createOperatorWindow()
+  initDownloadTools(process.env['NL_DB_FILE'] ? join(dirname(dbFile), 'tools') : join(app.getPath('userData'), 'tools'), (st) =>
+    sendOperator(IPC.dlToolsChanged, st)
+  )
   // Automatic backups: next to a test database, else <userData>/autobackups.
   initAutoBackup(
     process.env['NL_DB_FILE'] ? join(dirname(dbFile), 'autobackups') : join(app.getPath('userData'), 'autobackups'),

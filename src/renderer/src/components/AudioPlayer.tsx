@@ -26,7 +26,7 @@ import { useApp } from '@/store/useApp'
 import { formatTime, isYouTube, selectTracks, usePlayer } from '@/store/usePlayer'
 import { attachYouTubeFrame, embedUrl } from '@/lib/youtubeEmbed'
 import { useT } from '@/i18n'
-import YouTubeSearch from './YouTubeSearch'
+import YouTubeSearch, { DownloadButton } from './YouTubeSearch'
 
 const REPEAT_KEY = { off: 'topbar.player.repeatOff', all: 'topbar.player.repeatAll', one: 'topbar.player.repeatOne' } as const
 
@@ -290,6 +290,7 @@ export default function AudioPlayer() {
                     {t.youtube && <TvMinimalPlay size={12} className="shrink-0 text-red-400" aria-label="YouTube" />}
                     <span className="truncate">{t.name}</span>
                   </button>
+                  {t.youtube && <DownloadButton hit={t.youtube} />}
                   <button onClick={() => p.remove(t.id)} title={removeLabel} className="text-dim opacity-0 hover:text-live group-hover:opacity-100">
                     <X size={12} />
                   </button>
