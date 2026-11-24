@@ -15,6 +15,7 @@ import * as db from './db'
 import { parseBibleXml } from './zefania'
 import { bibleCatalog, initBibleLibrary, installLibraryBible } from './bibleLibrary'
 import { searchWebSongs } from './songSearch'
+import { identifyToYouTube, searchYouTube } from './youtube'
 import {
   AUDIO_EXT,
   deleteMedia,
@@ -450,6 +451,12 @@ function registerIpc(): void {
     )
   })
   ipcMain.handle(IPC.songsWebSearch, (_e, q: string) => searchWebSongs(String(q ?? '')))
+  // Music player → YouTube search. The API key is a setting (so backups carry it to a new computer); the music
+  // window only asks whether one is saved, and shows its last characters.
+  const youtubeKey = (): string => String(db.getSettings()['youtubeKey'] ?? '').trim()
+  ipcMain.handle(IPC.youtubeSearch, (_e, q: string) => searchYouTube(String(q ?? ''), youtubeKey()))
+  ipcMain.handle(IPC.youtubeKeyGet, () => ({ saved: !!youtubeKey(), hint: youtubeKey().slice(-4) }))
+  ipcMain.handle(IPC.youtubeKeySet, (_e, key: string) => db.setSetting('youtubeKey', String(key ?? '').trim()))
   ipcMain.handle(IPC.updateStatus, () => updateStatus())
   ipcMain.handle(IPC.updateCheck, () => checkForUpdate())
   ipcMain.handle(IPC.updateOpen, () => {
@@ -595,6 +602,7 @@ app.whenReady().then(async () => {
     notice: (text, tone) => sendOperator(IPC.screenNotice, { text, tone })
   })
   hardenWebviews()
+  identifyToYouTube('com.nlpresenter.app')
   registerIpc()
   createOperatorWindow()
   // Automatic backups: next to a test database, else <userData>/autobackups.

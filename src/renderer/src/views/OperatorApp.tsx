@@ -129,6 +129,8 @@ export default function OperatorApp() {
   const ready = useApp((s) => s.ready)
   const editing = useApp((s) => s.editingSongId)
   const playerOpen = usePlayer((s) => s.open)
+  // A YouTube video plays inside the music window, so the window stays mounted (hidden) while one is loaded.
+  const ytLoaded = usePlayer((s) => !!s.ytVideo)
   useT() // re-render everything below when the language changes
   useEffect(() => {
     useApp.getState().hydrate().then(() => {
@@ -162,7 +164,7 @@ export default function OperatorApp() {
         <LiveSidebar />
       </main>
       {editing && <SongEditor key={editing} />}
-      {playerOpen && <AudioPlayer />}
+      {(playerOpen || ytLoaded) && <AudioPlayer />}
       <DeckProgress />
       <QuickKeys />
     </div>
